@@ -137,7 +137,7 @@ examples:
 			os.Exit(1)
 		}
 
-		fmt.Println(message)
+		fmt.Println("\n", message)
 
 		var confirm bool
 		if err := huh.NewConfirm().
