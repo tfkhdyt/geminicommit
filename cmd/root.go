@@ -108,16 +108,10 @@ var RootCmd = &cobra.Command{
 			defer client.Close()
 
 			model := client.GenerativeModel("gemini-pro")
-			resp, err := model.GenerateContent(ctx, genai.Text(fmt.Sprintf(`generate commit messages based on the following diff:
+			resp, err := model.GenerateContent(ctx, genai.Text(fmt.Sprintf(`generate conventional git commit message based on the following diff:
 %s
 
-commit messages should:
- - follow conventional commits
- - message format should be: <type>[scope]: <description>
-
-examples:
- - fix(authentication): add password regex pattern
- - feat(storage): add new test cases`, diff)))
+Exclude anything unnecessary, because your entire response will be passed directly into git commit`, diff)))
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
