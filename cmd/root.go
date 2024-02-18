@@ -25,6 +25,15 @@ var (
 	stageAll bool
 )
 
+type action string
+
+const (
+	confirm    action = "CONFIRM"
+	regenerate action = "REGENERATE"
+	edit       action = "EDIT"
+	cancel     action = "CANCEL"
+)
+
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:     "geminicommit",
@@ -69,42 +78,57 @@ var RootCmd = &cobra.Command{
 			color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
 		}
 
-		messageChan := make(chan string, 1)
-		cobra.CheckErr(
-			spinner.New().
-				Title("The AI is analyzing your changes").
-				Action(gemini.AnalyzeChanges(diff, messageChan)).
-				Run(),
-		)
+	generate:
+		for {
+			messageChan := make(chan string, 1)
+			cobra.CheckErr(
+				spinner.New().
+					Title("The AI is analyzing your changes").
+					Action(gemini.AnalyzeChanges(diff, messageChan)).
+					Run(),
+			)
 
-		message := <-messageChan
-		fmt.Print("\n")
-		underline.Println("Changes analyzed!")
+			message := <-messageChan
+			fmt.Print("\n")
+			underline.Println("Changes analyzed!")
 
-		if strings.TrimSpace(message) == "" {
-			fmt.Println("Error: no commit messages were generated. Try again")
-			os.Exit(1)
+			if strings.TrimSpace(message) == "" {
+				fmt.Println("Error: no commit messages were generated. Try again")
+				os.Exit(1)
+			}
+
+			fmt.Print("\n")
+			color.New(color.BgWhite, color.FgBlack).Printf("%s", message)
+			fmt.Print("\n\n")
+
+			var selectedAction action
+			cobra.CheckErr(huh.NewSelect[action]().
+				Title("Use this commit?").
+				Options(
+					huh.NewOption("Yes", confirm),
+					huh.NewOption("Regenerate", regenerate),
+					huh.NewOption("Edit", edit),
+					huh.NewOption("Cancel", cancel),
+				).
+				Value(&selectedAction).Run())
+
+			switch selectedAction {
+			case confirm:
+				cobra.CheckErr(git.CommitChanges(message))
+				color.New(color.FgGreen).Println("✔ Successfully committed!")
+				break generate
+			case regenerate:
+				continue
+			case edit:
+				cobra.CheckErr(huh.NewText().Title("Edit commit message manually").Value(&message).Run())
+				cobra.CheckErr(git.CommitChanges(message))
+				color.New(color.FgGreen).Println("✔ Successfully committed!")
+				break generate
+			case cancel:
+				color.New(color.FgRed).Println("Commit cancelled")
+				break generate
+			}
 		}
-
-		fmt.Print("\n")
-		color.New(color.BgWhite, color.FgBlack).Printf("%s", message)
-		fmt.Print("\n\n")
-
-		var confirm bool
-		cobra.CheckErr(huh.NewConfirm().
-			Title("Use this commit message?").
-			Affirmative("Yes!").
-			Negative("No.").
-			Value(&confirm).Run())
-
-		if !confirm {
-			color.New(color.FgRed).Println("Commit cancelled")
-			return
-		}
-
-		cobra.CheckErr(git.CommitChanges(message))
-
-		color.New(color.FgGreen).Println("✔ Successfully committed!")
 	},
 }
 
