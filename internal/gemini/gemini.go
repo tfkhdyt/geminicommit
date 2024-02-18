@@ -30,13 +30,11 @@ func AnalyzeChanges(diff string, messageChan chan<- string) func() {
 %s
 
 The commit message must follow this format:
----
 <type>(<optional scope>): <description>
 
 [optional body]
 
 [optional footer(s)]
----
 
 Specification:
 - Commits MUST be prefixed with a type, which consists of a noun, feat, fix, etc., followed by the OPTIONAL scope, OPTIONAL !, and REQUIRED terminal colon and space.
@@ -57,7 +55,6 @@ Specification:
 - BREAKING-CHANGE MUST be synonymous with BREAKING CHANGE, when used as a token in a footer.
 
 Type must be one of the following:
-
 - build: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
 - ci: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
 - docs: Documentation only changes
