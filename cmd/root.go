@@ -43,6 +43,14 @@ var RootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(_ *cobra.Command, _ []string) {
+		if apiKey := viper.GetString("api.key"); apiKey == "" {
+			fmt.Println("Error: API key is still empty, run this command to set your API key")
+			fmt.Print("\n")
+			color.New(color.Bold).Print("geminicommit config key set ")
+			color.New(color.Italic, color.Bold).Print("api_key\n\n")
+			os.Exit(1)
+		}
+
 		cobra.CheckErr(git.VerifyGitInstallation())
 		cobra.CheckErr(git.VerifyGitRepository())
 
@@ -181,10 +189,9 @@ func initConfig() {
 		viper.AddConfigPath(configDirPath)
 		viper.SetConfigType("toml")
 		viper.SetConfigName("config")
-		viper.SetDefault("api.key", "")
 
 		if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-			cobra.CheckErr(viper.WriteConfig())
+			createConfig()
 		}
 	}
 
@@ -194,5 +201,31 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Println("Error: failed to read config")
 		os.Exit(1)
+	}
+}
+
+func createConfig() {
+	// Create the directory and file paths.
+	config, err := os.UserConfigDir()
+	cobra.CheckErr(err)
+	configDirPath := filepath.Join(config, "geminicommit")
+	configFilePath := filepath.Join(configDirPath, "config.toml")
+
+	// Create the directory if it does not exist.
+	if _, err := os.Stat(configDirPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(configDirPath, 0o755); err != nil {
+			fmt.Println("Error: failed to make config dir")
+			os.Exit(1)
+		}
+	}
+
+	// Create the file if it does not exist.
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		file, err := os.Create(configFilePath)
+		if err != nil {
+			fmt.Println("Error: failed to make config file")
+			os.Exit(1)
+		}
+		defer file.Close()
 	}
 }
