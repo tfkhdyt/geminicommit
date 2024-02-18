@@ -1,0 +1,15 @@
+name: Create a Github release
+permissions:
+  contents: write
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  create-release:
+    runs-on: ubuntu-release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
