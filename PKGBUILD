@@ -8,7 +8,7 @@ url='https://github.com/tfkhdyt/geminicommit'
 license=('GPL3')
 depends=('git')
 source=("${pkgname}-v${pkgver}.tar.gz::${url}/releases/download/v${pkgver}/geminicommit-v${pkgver}-linux-amd64.tar.gz")
-md5sums=('ed00a68f72a6bc0aff855921da919650')
+sha256sums=('cdc4e296d4d4c2b8c3ca692b7bb337cd9b91a01f3ecc0d10045e462879b0227c')
 
 build() {
 	./geminicommit completion bash > geminicommit.bash
