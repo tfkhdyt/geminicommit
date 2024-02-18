@@ -2,18 +2,11 @@
 pkgname=geminicommit-bin
 pkgver=0.0.1
 pkgrel=2
-epoch=
 pkgdesc="A CLI that writes your git commit messages for you with Google Gemini AI"
 arch=("x86_64")
 url="https://github.com/tfkhdyt/geminicommit"
 license=('GPL3')
 depends=("git")
-makedepends=()
-checkdepends=()
-optdepends=()
-provides=()
-conflicts=()
-replaces=()
 source=("$pkgname-v$pkgver.tar.gz::https://github.com/tfkhdyt/geminicommit/releases/download/v$pkgver/geminicommit-v$pkgver-linux-amd64.tar.gz")
 md5sums=("ed00a68f72a6bc0aff855921da919650")
 
