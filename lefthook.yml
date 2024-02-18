@@ -1,0 +1,18 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      glob: '**/*.go'
+      run: golangci-lint run
+    format:
+      glob: '**/*.go'
+      run: gofumpt -w .
+    lines:
+      glob: '**/*.go'
+      run: golines -m 80 -w .
+pre-push:
+  parallel: true
+  commands:
+    outdated-deps:
+      glob: '**/*.go'
+      run: test $(go list -u -m -json all | go-mod-outdated -update -direct | wc -l) -eq 4
