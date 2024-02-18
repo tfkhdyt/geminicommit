@@ -44,7 +44,9 @@ var RootCmd = &cobra.Command{
 	// has an action associated with it:
 	Run: func(_ *cobra.Command, _ []string) {
 		if apiKey := viper.GetString("api.key"); apiKey == "" {
-			fmt.Println("Error: API key is still empty, run this command to set your API key")
+			fmt.Println(
+				"Error: API key is still empty, run this command to set your API key",
+			)
 			fmt.Print("\n")
 			color.New(color.Bold).Print("geminicommit config key set ")
 			color.New(color.Italic, color.Bold).Print("api_key\n\n")
