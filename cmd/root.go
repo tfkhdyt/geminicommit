@@ -137,7 +137,7 @@ var RootCmd = &cobra.Command{
 			case edit:
 				err := huh.NewForm(
 					huh.NewGroup(
-						huh.NewText().Title("Edit commit message manually").Value(&message),
+						huh.NewText().Title("Edit commit message manually").CharLimit(1000).Value(&message),
 					),
 				).Run()
 				cobra.CheckErr(err)
