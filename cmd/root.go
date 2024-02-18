@@ -11,6 +11,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -51,19 +52,21 @@ var RootCmd = &cobra.Command{
 		)
 		files, diff := <-filesChan, <-diffChan
 
+		underline := color.New(color.Underline)
+
 		if len(files) == 0 {
 			fmt.Println(
 				"Error: No staged changes found. Stage your changes manually, or automatically stage all changes with the `--all` flag",
 			)
 			os.Exit(1)
 		} else if len(files) == 1 {
-			fmt.Printf("Detected %d staged file:\n", len(files))
+			underline.Printf("Detected %d staged file:\n", len(files))
 		} else {
-			fmt.Printf("Detected %d staged files:\n", len(files))
+			underline.Printf("Detected %d staged files:\n", len(files))
 		}
 
 		for idx, file := range files {
-			fmt.Printf("     %d. %s\n", idx+1, file)
+			color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
 		}
 
 		messageChan := make(chan string, 1)
@@ -75,14 +78,17 @@ var RootCmd = &cobra.Command{
 		)
 
 		message := <-messageChan
-		fmt.Println("\nChanges analyzed!")
+		fmt.Print("\n")
+		underline.Println("Changes analyzed!")
 
 		if strings.TrimSpace(message) == "" {
 			fmt.Println("Error: no commit messages were generated. Try again")
 			os.Exit(1)
 		}
 
-		fmt.Printf("\n%s\n\n", message)
+		fmt.Print("\n")
+		color.New(color.BgWhite, color.FgBlack).Printf("%s", message)
+		fmt.Print("\n\n")
 
 		var confirm bool
 		cobra.CheckErr(huh.NewConfirm().
@@ -92,13 +98,13 @@ var RootCmd = &cobra.Command{
 			Value(&confirm).Run())
 
 		if !confirm {
-			fmt.Println("Commit cancelled")
+			color.New(color.FgRed).Println("Commit cancelled")
 			return
 		}
 
 		cobra.CheckErr(git.CommitChanges(message))
 
-		fmt.Println("✔ Successfully committed!")
+		color.New(color.FgGreen).Println("✔ Successfully committed!")
 	},
 }
 
