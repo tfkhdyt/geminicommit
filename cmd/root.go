@@ -120,7 +120,7 @@ var RootCmd = &cobra.Command{
 			case regenerate:
 				continue
 			case edit:
-				cobra.CheckErr(huh.NewText().Title("Edit commit message manually").Value(&message).Run())
+				cobra.CheckErr(huh.NewText().Title("Edit commit message manually").Value(&message).WithKeyMap(huh.NewDefaultKeyMap()).Run())
 				cobra.CheckErr(git.CommitChanges(message))
 				color.New(color.FgGreen).Println("✔ Successfully committed!")
 				break generate
