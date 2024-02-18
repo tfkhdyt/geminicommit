@@ -98,19 +98,24 @@ var RootCmd = &cobra.Command{
 			}
 
 			fmt.Print("\n")
-			color.New(color.BgWhite, color.FgBlack).Printf("%s", message)
+			color.New(color.Bold).Printf("%s", message)
 			fmt.Print("\n\n")
 
 			var selectedAction action
-			cobra.CheckErr(huh.NewSelect[action]().
-				Title("Use this commit?").
-				Options(
-					huh.NewOption("Yes", confirm),
-					huh.NewOption("Regenerate", regenerate),
-					huh.NewOption("Edit", edit),
-					huh.NewOption("Cancel", cancel),
-				).
-				Value(&selectedAction).Run())
+			err := huh.NewForm(
+				huh.NewGroup(
+					huh.NewSelect[action]().
+						Title("Use this commit?").
+						Options(
+							huh.NewOption("Yes", confirm),
+							huh.NewOption("Regenerate", regenerate),
+							huh.NewOption("Edit", edit),
+							huh.NewOption("Cancel", cancel),
+						).
+						Value(&selectedAction),
+				),
+			).Run()
+			cobra.CheckErr(err)
 
 			switch selectedAction {
 			case confirm:
@@ -120,7 +125,13 @@ var RootCmd = &cobra.Command{
 			case regenerate:
 				continue
 			case edit:
-				cobra.CheckErr(huh.NewText().Title("Edit commit message manually").Value(&message).WithKeyMap(huh.NewDefaultKeyMap()).Run())
+				err := huh.NewForm(
+					huh.NewGroup(
+						huh.NewText().Title("Edit commit message manually").Value(&message),
+					),
+				).Run()
+				cobra.CheckErr(err)
+
 				cobra.CheckErr(git.CommitChanges(message))
 				color.New(color.FgGreen).Println("✔ Successfully committed!")
 				break generate
