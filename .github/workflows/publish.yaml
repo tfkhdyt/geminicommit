@@ -7,6 +7,7 @@ on:
       - PKGBUILD
 jobs:
   aur-publish:
+    if: github.repository_owner == 'tfkhdyt'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
