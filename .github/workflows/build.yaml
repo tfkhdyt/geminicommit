@@ -29,3 +29,5 @@ jobs:
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           ldflags: '-w -s'
+          md5sum: FALSE
+          sha256sum: TRUE
