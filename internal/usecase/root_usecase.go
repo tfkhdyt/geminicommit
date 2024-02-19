@@ -26,7 +26,10 @@ type RootUsecase struct {
 	geminiService *service.GeminiService
 }
 
-func NewRootUsecase(gitService *service.GitService, geminiService *service.GeminiService) *RootUsecase {
+func NewRootUsecase(
+	gitService *service.GitService,
+	geminiService *service.GeminiService,
+) *RootUsecase {
 	return &RootUsecase{gitService, geminiService}
 }
 
