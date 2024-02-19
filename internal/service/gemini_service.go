@@ -1,40 +1,44 @@
-package gemini
+package service
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/google/generative-ai-go/genai"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/api/option"
 )
 
-func AnalyzeChanges(diff string, messageChan chan<- string) func() {
-	return func() {
-		ctx := context.Background()
+type GeminiService struct{}
 
-		client, err := genai.NewClient(
-			ctx,
-			option.WithAPIKey(viper.GetString("api.key")),
-		)
-		cobra.CheckErr(err)
-		defer client.Close()
+func NewGeminiService() *GeminiService {
+	return &GeminiService{}
+}
 
-		model := client.GenerativeModel("gemini-pro")
-		resp, err := model.GenerateContent(
-			ctx,
-			genai.Text(
-				fmt.Sprintf(
-					`let's assume you're an automated AI that will generate a conventional git commit message based on this diff changes:
+func (g *GeminiService) AnalyzeChanges(ctx context.Context, diff string) (string, error) {
+	client, err := genai.NewClient(
+		ctx,
+		option.WithAPIKey(viper.GetString("api.key")),
+	)
+	if err != nil {
+		return "", err
+	}
+	defer client.Close()
+
+	model := client.GenerativeModel("gemini-pro")
+	resp, err := model.GenerateContent(
+		ctx,
+		genai.Text(
+			fmt.Sprintf(
+				`let's assume you're an automated AI that will generate a conventional git commit message based on this diff changes:
 %s
 
 The commit message must follow this format:
-<type>(<optional scope>): <description>
+"<type>(<optional scope>): <description>
 
 [optional body]
 
-[optional footer(s)]
+[optional footer(s)]"
 
 Specification:
 - Commits MUST be prefixed with a type, which consists of a noun, feat, fix, etc., followed by the OPTIONAL scope, OPTIONAL !, and REQUIRED terminal colon and space.
@@ -66,12 +70,13 @@ Type must be one of the following:
 - test: Adding missing tests or correcting existing tests
 
 Exclude anything unnecessary, because your entire response will be passed directly into git commit`,
-					diff,
-				),
+				diff,
 			),
-		)
-		cobra.CheckErr(err)
-
-		messageChan <- fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+		),
+	)
+	if err != nil {
+		return "", nil
 	}
+
+	return fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0]), nil
 }

@@ -3,31 +3,20 @@ package handler
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/huh/spinner"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tfkhdyt/geminicommit/internal/gemini"
-	"github.com/tfkhdyt/geminicommit/pkg/git"
+	"github.com/tfkhdyt/geminicommit/internal/usecase"
 )
 
-type action string
+type RootHandler struct {
+	useCase *usecase.RootUsecase
+}
 
-const (
-	confirm    action = "CONFIRM"
-	regenerate action = "REGENERATE"
-	edit       action = "EDIT"
-	cancel     action = "CANCEL"
-)
-
-type RootHandler struct{}
-
-func NewRootHandler() *RootHandler {
-	return &RootHandler{}
+func NewRootHandler(useCase *usecase.RootUsecase) *RootHandler {
+	return &RootHandler{useCase}
 }
 
 func (r *RootHandler) RootCommand(
@@ -44,102 +33,7 @@ func (r *RootHandler) RootCommand(
 			os.Exit(1)
 		}
 
-		cobra.CheckErr(git.VerifyGitInstallation())
-		cobra.CheckErr(git.VerifyGitRepository())
-
-		if stageAll {
-			cobra.CheckErr(git.StageAll())
-		}
-
-		filesChan := make(chan []string, 1)
-		diffChan := make(chan string, 1)
-
-		cobra.CheckErr(
-			spinner.New().
-				Title("Detecting staged files").
-				Action(git.DetectDiffChanges(filesChan, diffChan)).
-				Run(),
-		)
-		files, diff := <-filesChan, <-diffChan
-
-		underline := color.New(color.Underline)
-
-		if len(files) == 0 {
-			fmt.Println(
-				"Error: No staged changes found. Stage your changes manually, or automatically stage all changes with the `--all` flag",
-			)
-			os.Exit(1)
-		} else if len(files) == 1 {
-			underline.Printf("Detected %d staged file:\n", len(files))
-		} else {
-			underline.Printf("Detected %d staged files:\n", len(files))
-		}
-
-		for idx, file := range files {
-			color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
-		}
-
-	generate:
-		for {
-			messageChan := make(chan string, 1)
-			cobra.CheckErr(
-				spinner.New().
-					Title("The AI is analyzing your changes").
-					Action(gemini.AnalyzeChanges(diff, messageChan)).
-					Run(),
-			)
-
-			message := <-messageChan
-			fmt.Print("\n")
-			underline.Println("Changes analyzed!")
-
-			if strings.TrimSpace(message) == "" {
-				fmt.Println("Error: no commit messages were generated. Try again")
-				os.Exit(1)
-			}
-
-			fmt.Print("\n")
-			color.New(color.Bold).Printf("%s", message)
-			fmt.Print("\n\n")
-
-			var selectedAction action
-			err := huh.NewForm(
-				huh.NewGroup(
-					huh.NewSelect[action]().
-						Title("Use this commit?").
-						Options(
-							huh.NewOption("Yes", confirm),
-							huh.NewOption("Regenerate", regenerate),
-							huh.NewOption("Edit", edit),
-							huh.NewOption("Cancel", cancel),
-						).
-						Value(&selectedAction),
-				),
-			).Run()
-			cobra.CheckErr(err)
-
-			switch selectedAction {
-			case confirm:
-				cobra.CheckErr(git.CommitChanges(message))
-				color.New(color.FgGreen).Println("✔ Successfully committed!")
-				break generate
-			case regenerate:
-				continue
-			case edit:
-				err := huh.NewForm(
-					huh.NewGroup(
-						huh.NewText().Title("Edit commit message manually").CharLimit(1000).Value(&message),
-					),
-				).Run()
-				cobra.CheckErr(err)
-
-				cobra.CheckErr(git.CommitChanges(message))
-				color.New(color.FgGreen).Println("✔ Successfully committed!")
-				break generate
-			case cancel:
-				color.New(color.FgRed).Println("Commit cancelled")
-				break generate
-			}
-		}
+		err := r.useCase.RootCommand(stageAll)
+		cobra.CheckErr(err)
 	}
 }
