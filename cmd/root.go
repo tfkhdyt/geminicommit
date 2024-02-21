@@ -29,7 +29,7 @@ var RootCmd = &cobra.Command{
 	Version: "0.0.2",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: rootHandler.RootCommand(stageAll),
+	Run: rootHandler.RootCommand(&stageAll),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

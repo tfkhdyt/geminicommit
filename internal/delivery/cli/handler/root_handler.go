@@ -20,7 +20,7 @@ func NewRootHandler(useCase *usecase.RootUsecase) *RootHandler {
 }
 
 func (r *RootHandler) RootCommand(
-	stageAll bool,
+	stageAll *bool,
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
 		if apiKey := viper.GetString("api.key"); apiKey == "" {

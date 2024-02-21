@@ -33,7 +33,7 @@ func NewRootUsecase(
 	return &RootUsecase{gitService, geminiService}
 }
 
-func (r *RootUsecase) RootCommand(stageAll bool) error {
+func (r *RootUsecase) RootCommand(stageAll *bool) error {
 	if err := r.gitService.VerifyGitInstallation(); err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (r *RootUsecase) RootCommand(stageAll bool) error {
 		return err
 	}
 
-	if stageAll {
+	if *stageAll {
 		if err := r.gitService.StageAll(); err != nil {
 			return err
 		}
@@ -111,7 +111,6 @@ generate:
 			return fmt.Errorf("no commit messages were generated. try again")
 		}
 
-		fmt.Print("\n")
 		color.New(color.Bold).Printf("%s", message)
 		fmt.Print("\n\n")
 
