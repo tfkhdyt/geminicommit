@@ -2,7 +2,7 @@ name: Release Go binary
 on:
   release:
     types:
-      - created
+      - released
 permissions:
   contents: write
   packages: write
