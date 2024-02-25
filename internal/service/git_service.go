@@ -43,6 +43,7 @@ func (g *GitService) DetectDiffChanges() ([]string, string, error) {
 	files, err := exec.Command("git", "diff", "--cached", "--diff-algorithm=minimal", "--name-only").
 		Output()
 	if err != nil {
+		fmt.Println("Error:", err)
 		return nil, "", err
 	}
 	filesStr := strings.TrimSpace(string(files))
@@ -54,6 +55,7 @@ func (g *GitService) DetectDiffChanges() ([]string, string, error) {
 	diff, err := exec.Command("git", "diff", "--cached", "--diff-algorithm=minimal").
 		Output()
 	if err != nil {
+		fmt.Println("Error:", err)
 		return nil, "", err
 	}
 
