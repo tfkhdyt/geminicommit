@@ -24,6 +24,7 @@ func (g *GeminiService) AnalyzeChanges(
 		option.WithAPIKey(viper.GetString("api.key")),
 	)
 	if err != nil {
+		fmt.Println("Error:", err)
 		return "", err
 	}
 	defer client.Close()
@@ -37,7 +38,7 @@ func (g *GeminiService) AnalyzeChanges(
 %s
 
 The commit message must follow this format:
-"<type>(<optional scope>): <description>
+"<type>(<scope>): <description>
 
 [optional body]
 
@@ -51,13 +52,15 @@ Type must be one of the following:
 - fix: A bug fix
 - perf: A code change that improves performance
 - refactor: A code change that neither fixes a bug nor adds a feature
-- style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc. Changes to web styling do not fall into this category )
 - test: Adding missing tests or correcting existing tests
 
 Specification:
 - Commits MUST be prefixed with a type, which consists of a noun, feat, fix, etc., followed by the OPTIONAL scope, OPTIONAL !, and REQUIRED terminal colon and space.
 - A scope MAY be provided after a type. A scope MUST consist of a noun describing a section of the codebase surrounded by parenthesis, e.g., fix(parser):
 - A description MUST immediately follow the colon and space after the type/scope prefix. The description is a short summary of the code changes, e.g., fix: array parsing issue when multiple spaces were contained in string.
+- A description MUST started with lowercase.
+- A description MUST NOT using past tense verb.
 - A longer commit body MAY be provided after the short description, providing additional contextual information about the code changes. The body MUST begin one blank line after the description.
 - A commit body is free-form and MAY consist of any number of newline separated paragraphs.
 - One or more footers MAY be provided one blank line after the body. Each footer MUST consist of a word token, followed by either a :<space> or <space># separator, followed by a string value (this is inspired by the git trailer convention).
@@ -76,6 +79,7 @@ Exclude anything unnecessary, because your entire response will be passed direct
 		),
 	)
 	if err != nil {
+		fmt.Println("Error:", err)
 		return "", nil
 	}
 
