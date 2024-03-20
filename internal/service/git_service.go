@@ -13,7 +13,7 @@ func NewGitService() *GitService {
 }
 
 func (g *GitService) VerifyGitInstallation() error {
-	if err := exec.Command("git", "-v").Run(); err != nil {
+	if err := exec.Command("git", "--version").Run(); err != nil {
 		return fmt.Errorf("git is not installed. %v", err)
 	}
 
