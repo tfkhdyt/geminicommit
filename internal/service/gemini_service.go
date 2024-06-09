@@ -18,6 +18,7 @@ func NewGeminiService() *GeminiService {
 func (g *GeminiService) AnalyzeChanges(
 	ctx context.Context,
 	diff string,
+	userContext *string,
 ) (string, error) {
 	client, err := genai.NewClient(
 		ctx,
@@ -37,6 +38,7 @@ func (g *GeminiService) AnalyzeChanges(
 				`let's assume you're an automated AI that will generate a conventional git commit message based on this diff changes:
 %s
 
+and this user context "%s".
 The commit message must follow this format:
 "<type>(<scope>): <description>
 
@@ -75,6 +77,7 @@ Specification:
 
 Exclude anything unnecessary, because your entire response will be passed directly into git commit`,
 				diff,
+				*userContext,
 			),
 		),
 	)

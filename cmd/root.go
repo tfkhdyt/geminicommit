@@ -18,6 +18,7 @@ import (
 var (
 	cfgFile     string
 	stageAll    bool
+	userContext string
 	rootHandler = container.GetRootHandlerInstance()
 )
 
@@ -29,7 +30,7 @@ var RootCmd = &cobra.Command{
 	Version: "0.0.3",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: rootHandler.RootCommand(&stageAll),
+	Run: rootHandler.RootCommand(&stageAll, &userContext),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -53,6 +54,8 @@ func init() {
 		StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/geminicommit/config.toml)")
 	RootCmd.Flags().
 		BoolVarP(&stageAll, "all", "a", false, "stage all changes in tracked files (default is false)")
+	RootCmd.Flags().
+		StringVarP(&userContext, "context", "c", "none", "additional context to be added to the commit message")
 }
 
 // initConfig reads in config file and ENV variables if set.
