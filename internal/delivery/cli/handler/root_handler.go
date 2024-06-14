@@ -21,6 +21,7 @@ func NewRootHandler(useCase *usecase.RootUsecase) *RootHandler {
 
 func (r *RootHandler) RootCommand(
 	stageAll *bool,
+	userContext *string,
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
 		if apiKey := viper.GetString("api.key"); apiKey == "" {
@@ -33,7 +34,7 @@ func (r *RootHandler) RootCommand(
 			os.Exit(1)
 		}
 
-		err := r.useCase.RootCommand(stageAll)
+		err := r.useCase.RootCommand(stageAll, userContext)
 		cobra.CheckErr(err)
 	}
 }
