@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/spf13/viper"
@@ -19,6 +20,7 @@ func (g *GeminiService) AnalyzeChanges(
 	ctx context.Context,
 	diff string,
 	userContext *string,
+	relatedFiles *map[string]string,
 ) (string, error) {
 	client, err := genai.NewClient(
 		ctx,
@@ -29,7 +31,11 @@ func (g *GeminiService) AnalyzeChanges(
 		return "", err
 	}
 	defer client.Close()
-
+	// format relatedFiles to be dir : files
+	relatedFilesArray := make([]string, 0, len(*relatedFiles))
+	for dir, ls := range *relatedFiles {
+		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s:%s", dir, ls))
+	}
 	model := client.GenerativeModel("gemini-pro")
 	resp, err := model.GenerateContent(
 		ctx,
@@ -46,6 +52,8 @@ The commit message must follow this format:
 
 [optional footer(s)]"
 
+Neighboring Files:
+%s
 Type must be one of the following:
 - build: changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
 - ci: changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
@@ -78,6 +86,7 @@ Specification:
 Exclude anything unnecessary, because your entire response will be passed directly into git commit`,
 				diff,
 				*userContext,
+				strings.Join(relatedFilesArray, ", "),
 			),
 		),
 	)

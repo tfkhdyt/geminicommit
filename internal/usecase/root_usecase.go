@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -15,11 +17,11 @@ import (
 type action string
 
 const (
-	confirm    action = "CONFIRM"
-	regenerate action = "REGENERATE"
-	edit       action = "EDIT"
-	editcontext action= "EDIT_CONTEXT"
-	cancel     action = "CANCEL"
+	confirm     action = "CONFIRM"
+	regenerate  action = "REGENERATE"
+	edit        action = "EDIT"
+	editcontext action = "EDIT_CONTEXT"
+	cancel      action = "CANCEL"
 )
 
 type RootUsecase struct {
@@ -81,9 +83,22 @@ func (r *RootUsecase) RootCommand(stageAll *bool, userContext *string) error {
 	} else {
 		underline.Printf("Detected %d staged files:\n", len(files))
 	}
-
+	relatedFiles := make(map[string]string)
+	visitedDirs := make(map[string]bool)
 	for idx, file := range files {
 		color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
+		dir := filepath.Dir(file)
+		if !visitedDirs[dir] {
+			lsEntry, err := os.ReadDir(dir)
+			if err == nil {
+				var ls []string
+				for _, entry := range lsEntry {
+					ls = append(ls, entry.Name())
+				}
+				relatedFiles[dir] = strings.Join(ls, ", ")
+				visitedDirs[dir] = true
+			}
+		}
 	}
 
 generate:
@@ -92,7 +107,7 @@ generate:
 		if err := spinner.New().
 			Title("The AI is analyzing your changes").
 			Action(func() {
-				message, err := r.geminiService.AnalyzeChanges(context.Background(), diff, userContext)
+				message, err := r.geminiService.AnalyzeChanges(context.Background(), diff, userContext, &relatedFiles)
 				if err != nil {
 					messageChan <- ""
 					return
