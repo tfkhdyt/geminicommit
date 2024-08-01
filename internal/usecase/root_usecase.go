@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -15,10 +17,11 @@ import (
 type action string
 
 const (
-	confirm    action = "CONFIRM"
-	regenerate action = "REGENERATE"
-	edit       action = "EDIT"
-	cancel     action = "CANCEL"
+	confirm     action = "CONFIRM"
+	regenerate  action = "REGENERATE"
+	edit        action = "EDIT"
+	editcontext action = "EDIT_CONTEXT"
+	cancel      action = "CANCEL"
 )
 
 type RootUsecase struct {
@@ -33,7 +36,7 @@ func NewRootUsecase(
 	return &RootUsecase{gitService, geminiService}
 }
 
-func (r *RootUsecase) RootCommand(stageAll *bool) error {
+func (r *RootUsecase) RootCommand(stageAll *bool, userContext *string) error {
 	if err := r.gitService.VerifyGitInstallation(); err != nil {
 		return err
 	}
@@ -80,9 +83,22 @@ func (r *RootUsecase) RootCommand(stageAll *bool) error {
 	} else {
 		underline.Printf("Detected %d staged files:\n", len(files))
 	}
-
+	relatedFiles := make(map[string]string)
+	visitedDirs := make(map[string]bool)
 	for idx, file := range files {
 		color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
+		dir := filepath.Dir(file)
+		if !visitedDirs[dir] {
+			lsEntry, err := os.ReadDir(dir)
+			if err == nil {
+				var ls []string
+				for _, entry := range lsEntry {
+					ls = append(ls, entry.Name())
+				}
+				relatedFiles[dir] = strings.Join(ls, ", ")
+				visitedDirs[dir] = true
+			}
+		}
 	}
 
 generate:
@@ -91,7 +107,7 @@ generate:
 		if err := spinner.New().
 			Title("The AI is analyzing your changes").
 			Action(func() {
-				message, err := r.geminiService.AnalyzeChanges(context.Background(), diff)
+				message, err := r.geminiService.AnalyzeChanges(context.Background(), diff, userContext, &relatedFiles)
 				if err != nil {
 					messageChan <- ""
 					return
@@ -123,6 +139,7 @@ generate:
 						huh.NewOption("Yes", confirm),
 						huh.NewOption("Regenerate", regenerate),
 						huh.NewOption("Edit", edit),
+						huh.NewOption("Edit Context", editcontext),
 						huh.NewOption("Cancel", cancel),
 					).
 					Value(&selectedAction),
@@ -154,6 +171,15 @@ generate:
 			}
 			color.New(color.FgGreen).Println("✔ Successfully committed!")
 			break generate
+		case editcontext:
+			if err := huh.NewForm(
+				huh.NewGroup(
+					huh.NewText().Title("Edit user context").CharLimit(1000).Value(userContext),
+				),
+			).Run(); err != nil {
+				return err
+			}
+			continue
 		case cancel:
 			color.New(color.FgRed).Println("Commit cancelled")
 			break generate
