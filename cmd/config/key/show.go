@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2024 Taufik Hidayat <tfkhdyt@proton.me>
 */
 package key
 
