@@ -22,7 +22,7 @@ well-formatted commit messages** effortlessly, streamlining your Git workflow.
 
 ### Installation
 
-- **Build from source:** `go install github.com/tfkhdyt/geminicommit`
+- **Build from source:** `go install github.com/tfkhdyt/geminicommit@latest`
 <!-- - **Arch Linux (AUR):** `yay -S geminicommit-bin` -->
 - **Standalone binary:** Download the binary file from
   [release page](https://github.com/tfkhdyt/geminicommit/releases) and move the
