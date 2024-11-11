@@ -19,6 +19,7 @@ var (
 	cfgFile     string
 	stageAll    bool
 	userContext string
+	model       string
 	rootHandler = container.GetRootHandlerInstance()
 )
 
@@ -30,7 +31,7 @@ var RootCmd = &cobra.Command{
 	Version: "0.1.2",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: rootHandler.RootCommand(&stageAll, &userContext),
+	Run: rootHandler.RootCommand(&stageAll, &userContext, &model),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -53,9 +54,11 @@ func init() {
 	RootCmd.PersistentFlags().
 		StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/geminicommit/config.toml)")
 	RootCmd.Flags().
-		BoolVarP(&stageAll, "all", "a", false, "stage all changes in tracked files (default is false)")
+		BoolVarP(&stageAll, "all", "a", false, "stage all changes in tracked files")
 	RootCmd.Flags().
-		StringVarP(&userContext, "context", "c", "none", "additional context to be added to the commit message")
+		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
+	RootCmd.Flags().
+		StringVarP(&model, "model", "m", "gemini-1.5-flash-latest", "google gemini model to use")
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -36,7 +36,7 @@ func NewRootUsecase(
 	return &RootUsecase{gitService, geminiService}
 }
 
-func (r *RootUsecase) RootCommand(stageAll *bool, userContext *string) error {
+func (r *RootUsecase) RootCommand(stageAll *bool, userContext *string, model *string) error {
 	if err := r.gitService.VerifyGitInstallation(); err != nil {
 		return err
 	}
@@ -103,11 +103,12 @@ func (r *RootUsecase) RootCommand(stageAll *bool, userContext *string) error {
 
 generate:
 	for {
+		fmt.Println("Model:", *model)
 		messageChan := make(chan string, 1)
 		if err := spinner.New().
-			Title("The AI is analyzing your changes").
+			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *model)).
 			Action(func() {
-				message, err := r.geminiService.AnalyzeChanges(context.Background(), diff, userContext, &relatedFiles)
+				message, err := r.geminiService.AnalyzeChanges(context.Background(), diff, userContext, &relatedFiles, model)
 				if err != nil {
 					messageChan <- ""
 					return
@@ -123,11 +124,13 @@ generate:
 		fmt.Print("\n")
 		underline.Println("Changes analyzed!")
 
-		if strings.TrimSpace(message) == "" {
+		message = strings.TrimSpace(message)
+
+		if message == "" {
 			return fmt.Errorf("no commit messages were generated. try again")
 		}
 
-		color.New(color.Bold).Printf("%s\n", message)
+		color.New(color.Bold).Printf("%s\n\n", message)
 
 		var selectedAction action
 		if err := huh.NewForm(

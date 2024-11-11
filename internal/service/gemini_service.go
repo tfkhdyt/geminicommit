@@ -13,30 +13,38 @@ import (
 )
 
 type GeminiService struct {
-	conventionalTypes map[string]string
-	systemPrompt      string
+	systemPrompt string
 }
 
 func NewGeminiService() *GeminiService {
+	conventionalTypes, err := json.Marshal(map[string]string{
+		"docs":     "Documentation only changes",
+		"style":    "Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)",
+		"refactor": "A code change that neither fixes a bug nor adds a feature",
+		"perf":     "A code change that improves performance",
+		"test":     "Adding missing tests or correcting existing tests",
+		"build":    "Changes that affect the build system or external dependencies",
+		"ci":       "Changes to our CI configuration files and scripts",
+		"chore":    "Other changes that don't modify src or test files",
+		"revert":   "Reverts a previous commit",
+		"feat":     "A new feature",
+		"fix":      "A bug fix",
+	})
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+
 	return &GeminiService{
-		conventionalTypes: map[string]string{
-			"docs":     "Documentation only changes",
-			"style":    "Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)",
-			"refactor": "A code change that neither fixes a bug nor adds a feature",
-			"perf":     "A code change that improves performance",
-			"test":     "Adding missing tests or correcting existing tests",
-			"build":    "Changes that affect the build system or external dependencies",
-			"ci":       "Changes to our CI configuration files and scripts",
-			"chore":    "Other changes that don't modify src or test files",
-			"revert":   "Reverts a previous commit",
-			"feat":     "A new feature",
-			"fix":      "A bug fix",
-		},
-		systemPrompt: `You are a commit message generator that follows these rules:
+		systemPrompt: fmt.Sprintf(`You are a commit message generator that follows these rules:
 1. Write in present tense
-2. Be concise and direct
+2. Be accurate, concise and direct
 3. Output only the commit message without any explanations
-4. Follow the format: <type>(<optional scope>): <commit message>`,
+4. Follow the format: <type>(<optional scope>): <commit message>
+5. Commit message should starts with lowercase
+6. Commit message must be a maximum of 72 characters
+7. Exclude anything unnecessary such as translation. Your entire response will be passed directly into git commit
+8. Choose a type from the type-to-description JSON below that best describes the git diff: %s`, conventionalTypes),
 	}
 }
 
@@ -50,29 +58,18 @@ func (g *GeminiService) GetUserPrompt(
 		context = &temp
 	}
 
-	conventionalTypes, err := json.Marshal(g.conventionalTypes)
-	if err != nil {
-		return "", fmt.Errorf("error marshalling conventional types: %v", err)
-	}
-
 	return fmt.Sprintf(
 		`Generate a concise git commit message written in present tense for the following code diff with the given specifications below:
-Commit message should start with lowercase.
-Focus on being accurate and concise.
+
 %s
 
 Neighboring files:
 %s
 
-Commit message must be a maximum of 72 characters.
-Choose a type from the type-to-description JSON below that best describes the git diff: %s
-Exclude anything unnecessary such as translation. Your entire response will be passed directly into git commit.
-
 Code diff:
 %s`,
 		*context,
 		strings.Join(files, ", "),
-		conventionalTypes,
 		diff,
 	), nil
 }
@@ -82,6 +79,7 @@ func (g *GeminiService) AnalyzeChanges(
 	diff string,
 	userContext *string,
 	relatedFiles *map[string]string,
+	modelName *string,
 ) (string, error) {
 	// format relatedFiles to be dir : files
 	relatedFilesArray := make([]string, 0, len(*relatedFiles))
@@ -100,7 +98,7 @@ func (g *GeminiService) AnalyzeChanges(
 
 	defer client.Close()
 
-	model := client.GenerativeModel("gemini-1.5-flash-latest")
+	model := client.GenerativeModel(*modelName)
 	safetySettings := []*genai.SafetySetting{
 		{
 			Category:  genai.HarmCategoryHarassment,

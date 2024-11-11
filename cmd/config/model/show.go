@@ -1,31 +1,34 @@
 /*
 Copyright © 2024 Taufik Hidayat <tfkhdyt@proton.me>
 */
-package key
+package model
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-// KeyCmd represents the key command
-var KeyCmd = &cobra.Command{
-	Use:   "key",
-	Short: "Manage Google Gemini API key",
-	Long:  `Manage Google Gemini API key`,
+// showCmd represents the set command
+var showCmd = &cobra.Command{
+	Use:   "show",
+	Short: "Show currently used Google Gemini model",
+	Long:  `Show currently used Google Gemini model`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("key called")
+		model := viper.GetString("api.model")
+		fmt.Println(model)
 	},
 }
 
 func init() {
-	KeyCmd.AddCommand(setCmd, showCmd)
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// keyCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// setCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// keyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// setCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

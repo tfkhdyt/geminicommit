@@ -1,7 +1,7 @@
 /*
 Copyright © 2024 Taufik Hidayat <tfkhdyt@proton.me>
 */
-package key
+package model
 
 import (
 	"github.com/spf13/cobra"
@@ -9,9 +9,9 @@ import (
 
 // KeyCmd represents the key command
 var KeyCmd = &cobra.Command{
-	Use:   "key",
-	Short: "Manage Google Gemini API key",
-	Long:  `Manage Google Gemini API key`,
+	Use:   "model",
+	Short: "Choose Google Gemini Model",
+	Long:  `Choose Google Gemini Model (Docs: https://ai.google.dev/gemini-api/docs/models/gemini)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("key called")
 	},
