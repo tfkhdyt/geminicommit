@@ -27,7 +27,7 @@ var RootCmd = &cobra.Command{
 	Use:     "geminicommit",
 	Short:   "A CLI that writes your git commit messages for you with Google Gemini AI ",
 	Long:    `A CLI that writes your git commit messages for you with Google Gemini AI `,
-	Version: "0.1.0",
+	Version: "0.1.1",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: rootHandler.RootCommand(&stageAll, &userContext),
