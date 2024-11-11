@@ -57,20 +57,15 @@ func (g *GeminiService) GetUserPrompt(
 
 	return fmt.Sprintf(
 		`Generate a concise git commit message written in present tense for the following code diff with the given specifications below:
-The output response must be in format:
-<type>(<optional scope>): <commit message>
-
+Commit message should start with lowercase.
 Focus on being accurate and concise.
-
 %s
 
 Neighboring files:
 %s
 
 Commit message must be a maximum of 72 characters.
-
 Choose a type from the type-to-description JSON below that best describes the git diff: %s
-
 Exclude anything unnecessary such as translation. Your entire response will be passed directly into git commit.
 
 Code diff:
@@ -91,7 +86,7 @@ func (g *GeminiService) AnalyzeChanges(
 	// format relatedFiles to be dir : files
 	relatedFilesArray := make([]string, 0, len(*relatedFiles))
 	for dir, ls := range *relatedFiles {
-		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s:%s", dir, ls))
+		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s/%s", dir, ls))
 	}
 
 	client, errClient := genai.NewClient(
