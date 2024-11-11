@@ -4,12 +4,22 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
 type GitService struct{}
 
+var (
+	instance *GitService
+	once     sync.Once
+)
+
 func NewGitService() *GitService {
-	return &GitService{}
+	once.Do(func() {
+		instance = &GitService{}
+	})
+
+	return instance
 }
 
 func (g *GitService) VerifyGitInstallation() error {
