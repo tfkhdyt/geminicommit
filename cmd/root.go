@@ -4,6 +4,7 @@ Copyright © 2024 Taufik Hidayat <tfkhdyt@proton.me>
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +13,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/tfkhdyt/geminicommit/cmd/config"
-	"github.com/tfkhdyt/geminicommit/internal/container"
+	"github.com/tfkhdyt/geminicommit/internal/delivery/cli/handler"
 )
 
 var (
@@ -20,7 +21,7 @@ var (
 	stageAll    bool
 	userContext string
 	model       string
-	rootHandler = container.GetRootHandlerInstance()
+	rootHandler = handler.NewRootHandler()
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -28,10 +29,10 @@ var RootCmd = &cobra.Command{
 	Use:     "geminicommit",
 	Short:   "CLI that writes your git commit messages for you with Google Gemini AI",
 	Long:    "CLI that writes your git commit messages for you with Google Gemini AI",
-	Version: "0.2.0",
+	Version: "0.2.1",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: rootHandler.RootCommand(&stageAll, &userContext, &model),
+	Run: rootHandler.RootCommand(context.Background(), &stageAll, &userContext, &model),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -58,7 +59,7 @@ func init() {
 	RootCmd.Flags().
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
 	RootCmd.Flags().
-		StringVarP(&model, "model", "m", "gemini-1.5-flash-latest", "google gemini model to use")
+		StringVarP(&model, "model", "m", "gemini-1.5-pro", "google gemini model to use")
 }
 
 // initConfig reads in config file and ENV variables if set.
