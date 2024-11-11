@@ -6,17 +6,44 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/google/generative-ai-go/genai"
-	"github.com/spf13/viper"
-	"google.golang.org/api/option"
 )
 
 type GeminiService struct {
 	systemPrompt string
 }
 
+var (
+	geminiService *GeminiService
+	geminiOnce    sync.Once
+)
+
 func NewGeminiService() *GeminiService {
+	geminiOnce.Do(func() {
+		geminiService = &GeminiService{
+			systemPrompt: `You are a commit message generator that follows these rules:
+1. Write in present tense
+2. Be concise and direct
+3. Output only the commit message without any explanations
+4. Follow the format: <type>(<optional scope>): <commit message>`,
+		}
+	})
+
+	return geminiService
+}
+
+func (g *GeminiService) GetUserPrompt(
+	context *string,
+	diff string,
+	files []string,
+) (string, error) {
+	if context != nil {
+		temp := fmt.Sprintf("Use the following context to understand intent:\n%s", *context)
+		context = &temp
+	}
+
 	conventionalTypes, err := json.Marshal(map[string]string{
 		"docs":     "Documentation only changes",
 		"style":    "Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)",
@@ -35,33 +62,24 @@ func NewGeminiService() *GeminiService {
 		os.Exit(1)
 	}
 
-	return &GeminiService{
-		systemPrompt: fmt.Sprintf(`You are a commit message generator that follows these rules:
-1. Write in present tense
-2. Be accurate, concise and direct
-3. Output only the commit message without any explanations
-4. Follow the format: <type>(<optional scope>): <commit message>
-5. Commit message should starts with lowercase
-6. Commit message must be a maximum of 72 characters
-7. Exclude anything unnecessary such as translation. Your entire response will be passed directly into git commit
-8. Choose a type from the type-to-description JSON below that best describes the git diff: %s`, conventionalTypes),
-	}
-}
-
-func (g *GeminiService) GetUserPrompt(
-	context *string,
-	diff string,
-	files []string,
-) (string, error) {
-	if context != nil {
-		temp := fmt.Sprintf("Use the following context to understand intent:\n%s", *context)
-		context = &temp
-	}
-
 	return fmt.Sprintf(
 		`Generate a concise git commit message written in present tense for the following code diff with the given specifications below:
 
+The output response must be in format:
+<type>(<optional scope>): <commit message>
+
+Commit message should starts with lowercase letter.
+
+Focus on being accurate and concise.
+
 %s
+
+Commit message must be a maximum of 72 characters.
+
+Choose a type from the type-to-description JSON below that best describes the git diff:
+%s
+
+Exclude anything unnecessary such as translation. Your entire response will be passed directly into git commit.
 
 Neighboring files:
 %s
@@ -69,12 +87,14 @@ Neighboring files:
 Code diff:
 %s`,
 		*context,
+		conventionalTypes,
 		strings.Join(files, ", "),
 		diff,
 	), nil
 }
 
 func (g *GeminiService) AnalyzeChanges(
+	geminiClient *genai.Client,
 	ctx context.Context,
 	diff string,
 	userContext *string,
@@ -87,18 +107,7 @@ func (g *GeminiService) AnalyzeChanges(
 		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s/%s", dir, ls))
 	}
 
-	client, errClient := genai.NewClient(
-		context.Background(),
-		option.WithAPIKey(viper.GetString("api.key")),
-	)
-	if errClient != nil {
-		fmt.Printf("Error getting gemini client: %v", errClient)
-		os.Exit(1)
-	}
-
-	defer client.Close()
-
-	model := client.GenerativeModel(*modelName)
+	model := geminiClient.GenerativeModel(*modelName)
 	safetySettings := []*genai.SafetySetting{
 		{
 			Category:  genai.HarmCategoryHarassment,
