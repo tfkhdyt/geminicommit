@@ -106,28 +106,27 @@ func (g *GeminiService) AnalyzeChanges(
 	defer client.Close()
 
 	model := client.GenerativeModel("gemini-1.5-flash-latest")
-	// model.SafetySettings = []*genai.SafetySetting{
-	// 	{
-	// 		Category:  genai.HarmCategoryHateSpeech,
-	// 		Threshold: genai.HarmBlockNone,
-	// 	},
-	// 	{
-	// 		Category:  genai.HarmCategorySexuallyExplicit,
-	// 		Threshold: genai.HarmBlockNone,
-	// 	},
-	// 	{
-	// 		Category:  genai.HarmCategoryDangerousContent,
-	// 		Threshold: genai.HarmBlockNone,
-	// 	},
-	// 	{
-	// 		Category:  genai.HarmCategoryHarassment,
-	// 		Threshold: genai.HarmBlockNone,
-	// 	},
-	// 	{
-	// 		Category:  genai.HarmCategoryUnspecified,
-	// 		Threshold: genai.HarmBlockNone,
-	// 	},
-	// }
+	safetySettings := []*genai.SafetySetting{
+		{
+			Category:  genai.HarmCategoryHarassment,
+			Threshold: genai.HarmBlockNone,
+		},
+		{
+			Category:  genai.HarmCategoryHateSpeech,
+			Threshold: genai.HarmBlockNone,
+		},
+		{
+			Category:  genai.HarmCategoryDangerousContent,
+			Threshold: genai.HarmBlockNone,
+		},
+		{
+			Category:  genai.HarmCategorySexuallyExplicit,
+			Threshold: genai.HarmBlockNone,
+		},
+	}
+
+	// Apply safety settings to the model
+	model.SafetySettings = safetySettings
 	model.SystemInstruction = &genai.Content{
 		Parts: []genai.Part{genai.Text(g.systemPrompt)},
 	}
