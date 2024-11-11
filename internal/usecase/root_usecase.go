@@ -6,10 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/fatih/color"
+	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/option"
 
 	"github.com/tfkhdyt/geminicommit/internal/service"
 )
@@ -29,14 +32,39 @@ type RootUsecase struct {
 	geminiService *service.GeminiService
 }
 
-func NewRootUsecase(
-	gitService *service.GitService,
-	geminiService *service.GeminiService,
-) *RootUsecase {
-	return &RootUsecase{gitService, geminiService}
+var (
+	rootUsecaseInstance *RootUsecase
+	rootUsecaseOnce     sync.Once
+)
+
+func NewRootUsecase() *RootUsecase {
+	rootUsecaseOnce.Do(func() {
+		gitService := service.NewGitService()
+		geminiService := service.NewGeminiService()
+
+		rootUsecaseInstance = &RootUsecase{gitService, geminiService}
+	})
+
+	return rootUsecaseInstance
 }
 
-func (r *RootUsecase) RootCommand(stageAll *bool, userContext *string, model *string) error {
+func (r *RootUsecase) RootCommand(
+	ctx context.Context,
+	apiKey string,
+	stageAll *bool,
+	userContext *string,
+	model *string,
+) error {
+	client, errClient := genai.NewClient(
+		ctx,
+		option.WithAPIKey(apiKey),
+	)
+	if errClient != nil {
+		fmt.Printf("Error getting gemini client: %v", errClient)
+		os.Exit(1)
+	}
+	defer client.Close()
+
 	if err := r.gitService.VerifyGitInstallation(); err != nil {
 		return err
 	}
@@ -107,7 +135,7 @@ generate:
 		if err := spinner.New().
 			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *model)).
 			Action(func() {
-				message, err := r.geminiService.AnalyzeChanges(context.Background(), diff, userContext, &relatedFiles, model)
+				message, err := r.geminiService.AnalyzeChanges(client, ctx, diff, userContext, &relatedFiles, model)
 				if err != nil {
 					messageChan <- ""
 					return
