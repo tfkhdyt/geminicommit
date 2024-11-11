@@ -127,8 +127,7 @@ generate:
 			return fmt.Errorf("no commit messages were generated. try again")
 		}
 
-		color.New(color.Bold).Printf("%s", message)
-		fmt.Print("\n\n")
+		color.New(color.Bold).Printf("%s\n", message)
 
 		var selectedAction action
 		if err := huh.NewForm(
