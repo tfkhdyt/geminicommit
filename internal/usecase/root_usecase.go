@@ -103,7 +103,6 @@ func (r *RootUsecase) RootCommand(stageAll *bool, userContext *string, model *st
 
 generate:
 	for {
-		fmt.Println("Model:", *model)
 		messageChan := make(chan string, 1)
 		if err := spinner.New().
 			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *model)).
