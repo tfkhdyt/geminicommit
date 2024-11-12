@@ -2,9 +2,7 @@
 
 # geminicommit: Write Clear, Concise Git Commit Messages with Google Gemini AI
 
-**Tired of writer's block crafting commit messages?** `geminicommit` harnesses the
-power of Google's Gemini AI to help you write **informative, concise, and
-well-formatted commit messages** effortlessly, streamlining your Git workflow.
+**Struggling to write meaningful commit messages?** geminicommit leverages Google's Gemini AI to generate **clear, precise, and properly structured commit messages** automatically, making your Git workflow smoother
 
 ## Key Features
 
