@@ -167,8 +167,6 @@ generate:
 			return fmt.Errorf("no commit messages were generated. try again")
 		}
 
-		color.New(color.Bold).Printf("%s\n\n", message)
-
 		if *noConfirm {
 			if err := r.confirmAction(message); err != nil {
 				return err
@@ -176,6 +174,8 @@ generate:
 
 			return nil
 		}
+
+		color.New(color.Bold).Printf("%s\n\n", message)
 
 		var selectedAction action
 		if err := huh.NewForm(
