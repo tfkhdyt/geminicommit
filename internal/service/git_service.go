@@ -72,13 +72,15 @@ func (g *GitService) DetectDiffChanges() ([]string, string, error) {
 	return strings.Split(filesStr, "\n"), string(diff), nil
 }
 
-func (g *GitService) CommitChanges(message string) error {
+func (g *GitService) CommitChanges(message string, quiet *bool) error {
 	output, err := exec.Command("git", "commit", "-m", message).Output()
 	if err != nil {
 		return fmt.Errorf("failed to commit changes. %v", err)
 	}
 
-	fmt.Println(string(output))
+	if !*quiet {
+		fmt.Println(string(output))
+	}
 
 	return nil
 }

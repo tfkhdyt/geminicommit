@@ -170,7 +170,7 @@ generate:
 		}
 
 		if *noConfirm {
-			if err := r.confirmAction(message); err != nil {
+			if err := r.confirmAction(message, quiet); err != nil {
 				return err
 			}
 
@@ -199,7 +199,7 @@ generate:
 
 		switch selectedAction {
 		case confirm:
-			if err := r.confirmAction(message); err != nil {
+			if err := r.confirmAction(message, quiet); err != nil {
 				return err
 			}
 
@@ -228,12 +228,14 @@ generate:
 	return nil
 }
 
-func (r *RootUsecase) confirmAction(message string) error {
-	if err := r.gitService.CommitChanges(message); err != nil {
+func (r *RootUsecase) confirmAction(message string, quiet *bool) error {
+	if err := r.gitService.CommitChanges(message, quiet); err != nil {
 		return err
 	}
 
-	color.New(color.FgGreen).Println("✔ Successfully committed!")
+	if !*quiet {
+		color.New(color.FgGreen).Println("✔ Successfully committed!")
+	}
 
 	return nil
 }
@@ -247,7 +249,9 @@ func (r *RootUsecase) editAction(message string) error {
 		return err
 	}
 
-	if err := r.confirmAction(message); err != nil {
+	quiet := false
+
+	if err := r.confirmAction(message, &quiet); err != nil {
 		return err
 	}
 
