@@ -18,11 +18,12 @@ import (
 
 var (
 	cfgFile     string
-	stageAll    bool = false
+	stageAll    = false
 	userContext string
 	model       string
-	noConfirm   bool = false
-	rootHandler      = handler.NewRootHandler()
+	noConfirm   = false
+	quiet       = false
+	rootHandler = handler.NewRootHandler()
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -33,7 +34,14 @@ var RootCmd = &cobra.Command{
 	Version: "0.2.1",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: rootHandler.RootCommand(context.Background(), &stageAll, &userContext, &model, &noConfirm),
+	Run: rootHandler.RootCommand(
+		context.Background(),
+		&stageAll,
+		&userContext,
+		&model,
+		&noConfirm,
+		&quiet,
+	),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -59,6 +67,8 @@ func init() {
 		BoolVarP(&stageAll, "all", "a", stageAll, "stage all changes in tracked files")
 	RootCmd.Flags().
 		BoolVarP(&noConfirm, "yes", "y", noConfirm, "skip confirmation prompt")
+	RootCmd.Flags().
+		BoolVarP(&quiet, "quiet", "q", quiet, "suppress output (only works with --yes)")
 	RootCmd.Flags().
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
 	RootCmd.Flags().

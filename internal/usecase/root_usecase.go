@@ -48,14 +48,16 @@ func NewRootUsecase() *RootUsecase {
 	return rootUsecaseInstance
 }
 
-func (r *RootUsecase) getRelatedFiles(files []string) map[string]string {
+func (r *RootUsecase) getRelatedFiles(files []string, quiet *bool) map[string]string {
 	relatedFiles := make(map[string]string)
 	visitedDirs := make(map[string]bool)
 
 	for idx, file := range files {
-		color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
-		dir := filepath.Dir(file)
+		if !*quiet {
+			color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
+		}
 
+		dir := filepath.Dir(file)
 		if !visitedDirs[dir] {
 			lsEntry, err := os.ReadDir(dir)
 			if err == nil {
@@ -79,6 +81,7 @@ func (r *RootUsecase) RootCommand(
 	userContext *string,
 	model *string,
 	noConfirm *bool,
+	quiet *bool,
 ) error {
 	client, errClient := genai.NewClient(
 		ctx,
@@ -131,36 +134,35 @@ func (r *RootUsecase) RootCommand(
 		return fmt.Errorf(
 			"no staged changes found. stage your changes manually, or automatically stage all changes with the `--all` flag",
 		)
-	} else if len(files) == 1 {
+	} else if len(files) == 1 && !*quiet {
 		underline.Printf("Detected %d staged file:\n", len(files))
-	} else {
+	} else if !*quiet {
 		underline.Printf("Detected %d staged files:\n", len(files))
 	}
 
-	relatedFiles := r.getRelatedFiles(files)
+	relatedFiles := r.getRelatedFiles(files, quiet)
 
 generate:
 	for {
 		messageChan := make(chan string, 1)
-		if err := spinner.New().
-			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *model)).
-			Action(func() {
-				message, err := r.geminiService.AnalyzeChanges(client, ctx, diff, userContext, &relatedFiles, model)
-				if err != nil {
-					messageChan <- ""
-					return
-				}
 
-				messageChan <- message
-			}).
-			Run(); err != nil {
-			return err
+		if !*quiet {
+			if err := spinner.New().
+				Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *model)).
+				Action(func() {
+					r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, messageChan)
+				}).
+				Run(); err != nil {
+				return err
+			}
+		} else {
+			r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, messageChan)
 		}
 
 		message := <-messageChan
-		fmt.Print("\n")
-		underline.Println("Changes analyzed!")
-
+		if !*quiet {
+			underline.Println("\nChanges analyzed!")
+		}
 		message = strings.TrimSpace(message)
 
 		if message == "" {
@@ -262,4 +264,28 @@ func (r *RootUsecase) editContext(userContext *string) error {
 	}
 
 	return nil
+}
+
+func (r *RootUsecase) analyzeToChannel(
+	client *genai.Client,
+	ctx context.Context,
+	diff string,
+	userContext *string,
+	relatedFiles map[string]string,
+	model *string,
+	messageChan chan string,
+) {
+	message, err := r.geminiService.AnalyzeChanges(
+		client,
+		ctx,
+		diff,
+		userContext,
+		&relatedFiles,
+		model,
+	)
+	if err != nil {
+		messageChan <- ""
+	} else {
+		messageChan <- message
+	}
 }
