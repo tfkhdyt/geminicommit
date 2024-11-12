@@ -48,6 +48,30 @@ func NewRootUsecase() *RootUsecase {
 	return rootUsecaseInstance
 }
 
+func (r *RootUsecase) getRelatedFiles(files []string) map[string]string {
+	relatedFiles := make(map[string]string)
+	visitedDirs := make(map[string]bool)
+
+	for idx, file := range files {
+		color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
+		dir := filepath.Dir(file)
+
+		if !visitedDirs[dir] {
+			lsEntry, err := os.ReadDir(dir)
+			if err == nil {
+				var ls []string
+				for _, entry := range lsEntry {
+					ls = append(ls, entry.Name())
+				}
+				relatedFiles[dir] = strings.Join(ls, ", ")
+				visitedDirs[dir] = true
+			}
+		}
+	}
+
+	return relatedFiles
+}
+
 func (r *RootUsecase) RootCommand(
 	ctx context.Context,
 	apiKey string,
@@ -111,23 +135,8 @@ func (r *RootUsecase) RootCommand(
 	} else {
 		underline.Printf("Detected %d staged files:\n", len(files))
 	}
-	relatedFiles := make(map[string]string)
-	visitedDirs := make(map[string]bool)
-	for idx, file := range files {
-		color.New(color.Bold).Printf("     %d. %s\n", idx+1, file)
-		dir := filepath.Dir(file)
-		if !visitedDirs[dir] {
-			lsEntry, err := os.ReadDir(dir)
-			if err == nil {
-				var ls []string
-				for _, entry := range lsEntry {
-					ls = append(ls, entry.Name())
-				}
-				relatedFiles[dir] = strings.Join(ls, ", ")
-				visitedDirs[dir] = true
-			}
-		}
-	}
+
+	relatedFiles := r.getRelatedFiles(files)
 
 generate:
 	for {
@@ -179,40 +188,68 @@ generate:
 
 		switch selectedAction {
 		case confirm:
-			if err := r.gitService.CommitChanges(message); err != nil {
+			if err := r.confirmAction(message); err != nil {
 				return err
 			}
-			color.New(color.FgGreen).Println("✔ Successfully committed!")
+
 			break generate
 		case regenerate:
 			continue
 		case edit:
-			if err := huh.NewForm(
-				huh.NewGroup(
-					huh.NewText().Title("Edit commit message manually").CharLimit(1000).Value(&message),
-				),
-			).Run(); err != nil {
+			if err := r.editAction(message); err != nil {
 				return err
 			}
 
-			if err := r.gitService.CommitChanges(message); err != nil {
-				return err
-			}
-			color.New(color.FgGreen).Println("✔ Successfully committed!")
 			break generate
 		case editcontext:
-			if err := huh.NewForm(
-				huh.NewGroup(
-					huh.NewText().Title("Edit user context").CharLimit(1000).Value(userContext),
-				),
-			).Run(); err != nil {
+			if err := r.editContext(userContext); err != nil {
 				return err
 			}
+
 			continue
 		case cancel:
 			color.New(color.FgRed).Println("Commit cancelled")
+
 			break generate
 		}
+	}
+
+	return nil
+}
+
+func (r *RootUsecase) confirmAction(message string) error {
+	if err := r.gitService.CommitChanges(message); err != nil {
+		return err
+	}
+
+	color.New(color.FgGreen).Println("✔ Successfully committed!")
+
+	return nil
+}
+
+func (r *RootUsecase) editAction(message string) error {
+	if err := huh.NewForm(
+		huh.NewGroup(
+			huh.NewText().Title("Edit commit message manually").CharLimit(1000).Value(&message),
+		),
+	).Run(); err != nil {
+		return err
+	}
+
+	if err := r.confirmAction(message); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *RootUsecase) editContext(userContext *string) error {
+	if err := huh.NewForm(
+		huh.NewGroup(
+			huh.NewText().Title("Edit user context").CharLimit(1000).Value(userContext),
+		),
+	).Run(); err != nil {
+		return err
 	}
 
 	return nil
