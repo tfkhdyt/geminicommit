@@ -18,10 +18,11 @@ import (
 
 var (
 	cfgFile     string
-	stageAll    bool
+	stageAll    bool = false
 	userContext string
 	model       string
-	rootHandler = handler.NewRootHandler()
+	noConfirm   bool = false
+	rootHandler      = handler.NewRootHandler()
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -32,7 +33,7 @@ var RootCmd = &cobra.Command{
 	Version: "0.2.1",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: rootHandler.RootCommand(context.Background(), &stageAll, &userContext, &model),
+	Run: rootHandler.RootCommand(context.Background(), &stageAll, &userContext, &model, &noConfirm),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -55,7 +56,9 @@ func init() {
 	RootCmd.PersistentFlags().
 		StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/geminicommit/config.toml)")
 	RootCmd.Flags().
-		BoolVarP(&stageAll, "all", "a", false, "stage all changes in tracked files")
+		BoolVarP(&stageAll, "all", "a", stageAll, "stage all changes in tracked files")
+	RootCmd.Flags().
+		BoolVarP(&noConfirm, "yes", "y", noConfirm, "skip confirmation prompt")
 	RootCmd.Flags().
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
 	RootCmd.Flags().

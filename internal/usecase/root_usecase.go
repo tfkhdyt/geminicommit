@@ -78,6 +78,7 @@ func (r *RootUsecase) RootCommand(
 	stageAll *bool,
 	userContext *string,
 	model *string,
+	noConfirm *bool,
 ) error {
 	client, errClient := genai.NewClient(
 		ctx,
@@ -167,6 +168,14 @@ generate:
 		}
 
 		color.New(color.Bold).Printf("%s\n\n", message)
+
+		if *noConfirm {
+			if err := r.confirmAction(message); err != nil {
+				return err
+			}
+
+			return nil
+		}
 
 		var selectedAction action
 		if err := huh.NewForm(
