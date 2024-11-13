@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -83,4 +84,32 @@ func (g *GitService) CommitChanges(message string, quiet *bool) error {
 	}
 
 	return nil
+}
+
+func (g *GitService) GetLastCommitMessages(count int) ([]string, error) {
+	// Command to get only commit messages
+	cmd := exec.Command("git", "log",
+		"--pretty=format:%s", // %s formats only the commit message
+		"-n", fmt.Sprintf("%d", count))
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, fmt.Errorf("git log error: %v: %s", err, stderr.String())
+	}
+
+	// Split output into lines and filter empty ones
+	messages := strings.Split(out.String(), "\n")
+	result := make([]string, 0, len(messages))
+	for _, msg := range messages {
+		if msg != "" {
+			result = append(result, msg)
+		}
+	}
+
+	return result, nil
 }

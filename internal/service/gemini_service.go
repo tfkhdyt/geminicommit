@@ -38,6 +38,7 @@ func (g *GeminiService) GetUserPrompt(
 	context *string,
 	diff string,
 	files []string,
+	lastCommits []string,
 ) (string, error) {
 	if context != nil {
 		temp := fmt.Sprintf("Use the following context to understand intent:\n%s", *context)
@@ -62,6 +63,15 @@ func (g *GeminiService) GetUserPrompt(
 		os.Exit(1)
 	}
 
+	lastCommitContext := ""
+	if len(lastCommits) > 0 {
+		lastCommitContext = fmt.Sprintf(
+			"These are the last %d commit messages, if your proposed commit message is related to them, please make sure the commit message is consistent:\n%s\n\n",
+			len(lastCommits),
+			strings.Join(lastCommits, "\n"),
+		)
+	}
+
 	return fmt.Sprintf(
 		`Generate a concise git commit message written in present tense for the following code diff with the given specifications below:
 
@@ -84,11 +94,14 @@ Exclude anything unnecessary such as translation. Your entire response will be p
 Neighboring files:
 %s
 
+%s
+
 Code diff:
 %s`,
 		*context,
 		conventionalTypes,
 		strings.Join(files, ", "),
+		lastCommitContext,
 		diff,
 	), nil
 }
@@ -100,6 +113,7 @@ func (g *GeminiService) AnalyzeChanges(
 	userContext *string,
 	relatedFiles *map[string]string,
 	modelName *string,
+	lastCommits []string,
 ) (string, error) {
 	// format relatedFiles to be dir : files
 	relatedFilesArray := make([]string, 0, len(*relatedFiles))
@@ -133,7 +147,7 @@ func (g *GeminiService) AnalyzeChanges(
 		Parts: []genai.Part{genai.Text(g.systemPrompt)},
 	}
 
-	userPrompt, err := g.GetUserPrompt(userContext, diff, relatedFilesArray)
+	userPrompt, err := g.GetUserPrompt(userContext, diff, relatedFilesArray, lastCommits)
 	if err != nil {
 		return "", err
 	}
