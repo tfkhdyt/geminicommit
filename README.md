@@ -40,7 +40,7 @@
 1. Review the AI-generated message and customize it as needed.
 1. `geminicommit` will automatically commit your changes with the generated
    message.
-1. No more `git commit -m "update" 😁`
+1. No more `git commit -m "update"` 😁
 
 More details in `geminicommit --help`
 
