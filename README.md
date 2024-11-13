@@ -31,11 +31,13 @@
 
 ### Usage
 
-- Stage your changes in Git `git add file_name.go`.
-- Run `geminicommit` in your terminal.
-- Review the AI-generated message and customize it as needed.
-- `geminicommit` will automatically commit your changes with the generated
-  message.
+1. Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+1. Run `geminicommit config key set <your-api-key>` to set your API key.
+1. Stage your changes to git `git add file_name.go`.
+1. Run `geminicommit` in your terminal.
+1. Review the AI-generated message and customize it as needed.
+1. `geminicommit` will automatically commit your changes with the generated
+   message.
 
 More details in `geminicommit --help`
 
