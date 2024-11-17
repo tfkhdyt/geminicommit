@@ -101,10 +101,10 @@ func (r *RootUsecase) RootCommand(
 		return err
 	}
 
-	lastCommit, err := r.gitService.GetLastCommitMessages(5)
-	if err != nil {
-		return err
-	}
+	// lastCommit, err := r.gitService.GetLastCommitMessages(5)
+	// if err != nil {
+	// 	return err
+	// }
 
 	if *stageAll {
 		if err := r.gitService.StageAll(); err != nil {
@@ -155,13 +155,13 @@ generate:
 			if err := spinner.New().
 				Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *model)).
 				Action(func() {
-					r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, lastCommit, messageChan)
+					r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, messageChan)
 				}).
 				Run(); err != nil {
 				return err
 			}
 		} else {
-			r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, lastCommit, messageChan)
+			r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, messageChan)
 		}
 
 		message := <-messageChan
@@ -282,7 +282,7 @@ func (r *RootUsecase) analyzeToChannel(
 	userContext *string,
 	relatedFiles map[string]string,
 	model *string,
-	lastCommit []string,
+	// lastCommit []string,
 	messageChan chan string,
 ) {
 	message, err := r.geminiService.AnalyzeChanges(
@@ -292,7 +292,7 @@ func (r *RootUsecase) analyzeToChannel(
 		userContext,
 		&relatedFiles,
 		model,
-		lastCommit,
+		// lastCommit,
 	)
 	if err != nil {
 		messageChan <- ""
