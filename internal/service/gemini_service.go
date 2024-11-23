@@ -24,10 +24,13 @@ func NewGeminiService() *GeminiService {
 	geminiOnce.Do(func() {
 		geminiService = &GeminiService{
 			systemPrompt: `You are a commit message generator that follows these rules:
-1. Write in present tense
+1. Write in first-person singular present tense
 2. Be concise and direct
 3. Output only the commit message without any explanations
-4. Follow the format: <type>(<optional scope>): <commit message>`,
+4. Follow the format: <type>(<optional scope>): <commit message>
+5. Commit message should starts with lowercase letter.
+6. Commit message must be a maximum of 72 characters.
+7. Exclude anything unnecessary such as translation. Your entire response will be passed directly into git commit.`,
 		}
 	})
 
@@ -78,18 +81,10 @@ func (g *GeminiService) GetUserPrompt(
 The output response must be in format:
 <type>(<optional scope>): <commit message>
 
-Commit message should starts with lowercase letter.
-
-Focus on being accurate and concise.
-
 %s
-
-Commit message must be a maximum of 72 characters.
 
 Choose a type from the type-to-description JSON below that best describes the git diff:
 %s
-
-Exclude anything unnecessary such as translation. Your entire response will be passed directly into git commit.
 
 Neighboring files:
 %s
