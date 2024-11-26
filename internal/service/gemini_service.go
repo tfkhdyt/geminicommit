@@ -43,9 +43,11 @@ func (g *GeminiService) GetUserPrompt(
 	files []string,
 	// lastCommits []string,
 ) (string, error) {
-	if context != nil {
-		temp := fmt.Sprintf("Use the following context to understand intent:\n%s", *context)
+	if *context != "" {
+		temp := fmt.Sprintf("Use the following context to understand intent: %s", *context)
 		context = &temp
+	} else {
+		*context = ""
 	}
 
 	conventionalTypes, err := json.Marshal(map[string]string{
