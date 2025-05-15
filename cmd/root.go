@@ -72,7 +72,7 @@ func init() {
 	RootCmd.Flags().
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
 	RootCmd.Flags().
-		StringVarP(&model, "model", "m", "gemini-1.5-pro", "google gemini model to use")
+		StringVarP(&model, "model", "m", "gemini-2.0-flash", "google gemini model to use")
 }
 
 // initConfig reads in config file and ENV variables if set.

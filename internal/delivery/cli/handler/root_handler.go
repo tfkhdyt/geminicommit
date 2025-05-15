@@ -42,7 +42,7 @@ func (r *RootHandler) RootCommand(
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
 		modelFromConfig := viper.GetString("api.model")
-		if modelFromConfig != "" && *model == "gemini-1.5-pro" {
+		if modelFromConfig != "" && *model == "gemini-2.0-flash" {
 			*model = modelFromConfig
 		}
 
