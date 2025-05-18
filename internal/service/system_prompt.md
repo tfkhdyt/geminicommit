@@ -71,5 +71,3 @@ feat(user): add delete user function
 Adds a new function `deleteUser` to handle the removal of users from the database.
 Also updates the export to include the new function.
 ```
-
-Remove the "```" marks because the output is expected to be used directly as a Git commit message.

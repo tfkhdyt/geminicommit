@@ -115,5 +115,9 @@ func (g *GeminiService) AnalyzeChanges(
 		return "", nil
 	}
 
-	return fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0]), nil
+	result := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+	result = strings.ReplaceAll(result, "```", "")
+	result = strings.TrimSpace(result)
+
+	return result, nil
 }
