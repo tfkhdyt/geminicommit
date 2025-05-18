@@ -27,8 +27,6 @@ func NewGeminiService() *GeminiService {
 		geminiService = &GeminiService{
 			systemPrompt: systemPrompt,
 		}
-
-		fmt.Println(geminiService.systemPrompt)
 	})
 
 	return geminiService
