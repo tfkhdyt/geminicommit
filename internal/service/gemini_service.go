@@ -2,14 +2,16 @@ package service
 
 import (
 	"context"
-	"encoding/json"
+	_ "embed"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 
 	"github.com/google/generative-ai-go/genai"
 )
+
+//go:embed system_prompt.md
+var systemPrompt string
 
 type GeminiService struct {
 	systemPrompt string
@@ -23,15 +25,10 @@ var (
 func NewGeminiService() *GeminiService {
 	geminiOnce.Do(func() {
 		geminiService = &GeminiService{
-			systemPrompt: `You are a commit message generator that follows these rules:
-1. Write in first-person singular present tense
-2. Be concise and direct
-3. Output only the commit message without any explanations
-4. Follow the format: <type>(<optional scope>): <commit message>
-5. Commit message should starts with lowercase letter.
-6. Commit message must be a maximum of 72 characters.
-7. Exclude anything unnecessary such as translation. Your entire response will be passed directly into git commit.`,
+			systemPrompt: systemPrompt,
 		}
+
+		fmt.Println(geminiService.systemPrompt)
 	})
 
 	return geminiService
@@ -50,53 +47,17 @@ func (g *GeminiService) GetUserPrompt(
 		*context = ""
 	}
 
-	conventionalTypes, err := json.Marshal(map[string]string{
-		"docs":     "Documentation only changes",
-		"style":    "Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)",
-		"refactor": "A code change that neither fixes a bug nor adds a feature",
-		"perf":     "A code change that improves performance",
-		"test":     "Adding missing tests or correcting existing tests",
-		"build":    "Changes that affect the build system or external dependencies",
-		"ci":       "Changes to our CI configuration files and scripts",
-		"chore":    "Other changes that don't modify src or test files",
-		"revert":   "Reverts a previous commit",
-		"feat":     "A new feature",
-		"fix":      "A bug fix",
-	})
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-
-	// lastCommitContext := ""
-	// if len(lastCommits) > 0 {
-	// 	lastCommitContext = fmt.Sprintf(
-	// 		"These are the last %d commit messages, if your proposed commit message is related to them, please make sure the commit message is consistent:\n%s\n\n",
-	// 		len(lastCommits),
-	// 		strings.Join(lastCommits, "\n"),
-	// 	)
-	// }
-
 	return fmt.Sprintf(
-		`Generate a concise git commit message written in present tense for the following code diff with the given specifications below:
+		`%s
 
-The output response must be in format:
-<type>(<optional scope>): <commit message>
-
-%s
-
-Choose a type from the type-to-description JSON below that best describes the git diff:
+Code diff:
 %s
 
 Neighboring files:
-%s
-
-Code diff:
 %s`,
 		*context,
-		conventionalTypes,
-		strings.Join(files, ", "),
 		diff,
+		strings.Join(files, ", "),
 	), nil
 }
 
@@ -116,6 +77,7 @@ func (g *GeminiService) AnalyzeChanges(
 	}
 
 	model := geminiClient.GenerativeModel(*modelName)
+	model.SetTemperature(0.2)
 	safetySettings := []*genai.SafetySetting{
 		{
 			Category:  genai.HarmCategoryHarassment,
