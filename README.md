@@ -1,49 +1,103 @@
-[![ReadMeSupportPalestine](https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-project.svg)](https://github.com/Safouene1/support-palestine-banner)
+[![Support Palestine](https://raw.githubusercontent.com/Safouene1/support-palestine-banner/master/banner-project.svg)](https://github.com/Safouene1/support-palestine-banner)
 
-# geminicommit: Write Clear, Concise Git Commit Messages with Google Gemini AI
+# geminicommit
+
+**AI-Powered, Conventional Commit Messages with Google Gemini**
 
 ![Preview](./assets/Screenshot_20241112_103154.png)
 
-**Struggling to write meaningful commit messages?** geminicommit leverages Google's Gemini AI to generate **clear, precise, and properly structured commit messages** automatically, making your Git workflow smoother
+**geminicommit** helps you write clear, conventional, and meaningful Git commit messages automatically using Google Gemini AI. Save time, improve your commit history, and focus on what matters—your code.
 
-## Key Features
+---
 
-- **AI-powered Message Generation:** Leverage Google Gemini AI to generate clear
-  and descriptive messages, saving you time and brainpower.
-- **Customizable:** Tailor the message generation process to your specific needs
-  and preferences.
-- **Conventional Commits Compliant:** Adhere to widely accepted commit message
-  formatting standards for better project readability and maintainability.
-- **Cross-Platform Compatibility:** Works seamlessly on Linux, Windows, and macOS.
-  systems.
-- **Free and Open Source:** Contribute to and benefit from the open-source community.
+## ✨ Features
 
-## Getting Started
+- **AI-Generated Commit Messages:** Let Gemini AI analyze your staged changes and suggest concise, descriptive commit messages.
+- **Customizable Output:** Tailor the message style and structure to fit your workflow.
+- **Conventional Commits:** Ensures messages follow best practices for readability and automation.
+- **Cross-Platform:** Works on Linux, Windows, and macOS.
+- **Open Source:** Free to use and contribute.
 
-### Installation
+---
 
-- **Build from source:** `go install github.com/tfkhdyt/geminicommit@latest`
-<!-- - **Arch Linux (AUR):** `yay -S geminicommit-bin` -->
-- **Standalone binary:** Download the binary file from
-  [release page](https://github.com/tfkhdyt/geminicommit/releases) and move the
-  binary to one of the `PATH` directories in your system, for example:
-  - **Linux:** `$HOME/.local/bin/`, `/usr/local/bin/`
-  - **Windows:** `%LocalAppData%\Programs\`
-  - **macOS:** `/usr/local/bin/`
+## 🚀 Quickstart
 
-### Usage
+```sh
+# 1. Install (Go required)
+go install github.com/tfkhdyt/geminicommit@latest
+
+# 2. Get your Gemini API key
+#    https://aistudio.google.com/app/apikey
+
+# 3. Configure your API key
+geminicommit config key set <your-api-key>
+
+# 4. Stage your changes
+git add <file>
+
+# 5. Generate and commit
+geminicommit
+```
+
+---
+
+## 🛠️ Installation
+
+- **From Source:**
+  ```sh
+  go install github.com/tfkhdyt/geminicommit@latest
+  ```
+- **Standalone Binary:**
+  Download from the [releases page](https://github.com/tfkhdyt/geminicommit/releases) and move to a directory in your `PATH`:
+  - Linux: `$HOME/.local/bin/` or `/usr/local/bin/`
+  - Windows: `%LocalAppData%\Programs\`
+  - macOS: `/usr/local/bin/`
+- **NixOS:**
+  ```nix
+  environment.systemPackages = [
+    pkgs.geminicommit
+  ];
+  ```
+
+---
+
+## ⚙️ Configuration
 
 1. Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-1. Run `geminicommit config key set <your-api-key>` to set your API key.
-1. Stage your changes to git `git add file_name.go`.
-1. Run `geminicommit` in your terminal.
-1. Review the AI-generated message and customize it as needed.
-1. `geminicommit` will automatically commit your changes with the generated
-   message.
-1. No more `git commit -m "update"` 😁
+2. Set your key:
+   ```sh
+   geminicommit config key set <your-api-key>
+   ```
 
-More details in `geminicommit --help`
+---
 
-## License
+## 📖 Usage
 
-This project is licensed under the GPLv3 License. See the LICENSE file for details.
+1. Stage your changes:
+   ```sh
+   git add <file>
+   ```
+2. Run geminicommit:
+   ```sh
+   geminicommit
+   ```
+3. Review and edit the AI-generated message if needed.
+4. geminicommit will commit your changes with the generated message.
+
+For more options:
+
+```sh
+geminicommit --help
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to open an issue or submit a pull request.
+
+---
+
+## 📄 License
+
+This project is licensed under the GPLv3 License. See the [LICENSE](LICENSE) file for details.
