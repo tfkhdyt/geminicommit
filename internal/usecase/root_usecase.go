@@ -11,8 +11,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/fatih/color"
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 
 	"github.com/tfkhdyt/geminicommit/internal/service"
 )
@@ -85,13 +84,15 @@ func (r *RootUsecase) RootCommand(
 ) error {
 	client, errClient := genai.NewClient(
 		ctx,
-		option.WithAPIKey(apiKey),
+		&genai.ClientConfig{
+			APIKey:  apiKey,
+			Backend: genai.BackendGeminiAPI,
+		},
 	)
 	if errClient != nil {
 		fmt.Printf("Error getting gemini client: %v", errClient)
 		os.Exit(1)
 	}
-	defer client.Close()
 
 	if err := r.gitService.VerifyGitInstallation(); err != nil {
 		return err

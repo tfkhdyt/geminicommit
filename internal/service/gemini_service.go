@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/genai"
 )
 
 //go:embed system_prompt.md
@@ -74,48 +74,43 @@ func (g *GeminiService) AnalyzeChanges(
 		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s/%s", dir, ls))
 	}
 
-	model := geminiClient.GenerativeModel(*modelName)
-	model.SetTemperature(0.2)
-	safetySettings := []*genai.SafetySetting{
-		{
-			Category:  genai.HarmCategoryHarassment,
-			Threshold: genai.HarmBlockNone,
-		},
-		{
-			Category:  genai.HarmCategoryHateSpeech,
-			Threshold: genai.HarmBlockNone,
-		},
-		{
-			Category:  genai.HarmCategoryDangerousContent,
-			Threshold: genai.HarmBlockNone,
-		},
-		{
-			Category:  genai.HarmCategorySexuallyExplicit,
-			Threshold: genai.HarmBlockNone,
-		},
-	}
-
-	// Apply safety settings to the model
-	model.SafetySettings = safetySettings
-	model.SystemInstruction = &genai.Content{
-		Parts: []genai.Part{genai.Text(g.systemPrompt)},
-	}
-
 	userPrompt, err := g.GetUserPrompt(userContext, diff, relatedFilesArray)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := model.GenerateContent(
-		ctx,
-		genai.Text(userPrompt),
-	)
+	temp := float32(0.2)
+	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(userPrompt), &genai.GenerateContentConfig{
+		Temperature: &temp,
+		SafetySettings: []*genai.SafetySetting{
+			{
+				Category:  genai.HarmCategoryHarassment,
+				Threshold: genai.HarmBlockThresholdBlockNone,
+			},
+			{
+				Category:  genai.HarmCategoryHateSpeech,
+				Threshold: genai.HarmBlockThresholdBlockNone,
+			},
+			{
+				Category:  genai.HarmCategoryDangerousContent,
+				Threshold: genai.HarmBlockThresholdBlockNone,
+			},
+			{
+				Category:  genai.HarmCategorySexuallyExplicit,
+				Threshold: genai.HarmBlockThresholdBlockNone,
+			},
+		},
+		SystemInstruction: &genai.Content{
+			Role:  genai.RoleModel,
+			Parts: []*genai.Part{{Text: g.systemPrompt}},
+		},
+	})
 	if err != nil {
 		fmt.Println("Error:", err)
 		return "", nil
 	}
 
-	result := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+	result := resp.Candidates[0].Content.Parts[0].Text
 	result = strings.ReplaceAll(result, "```", "")
 	result = strings.TrimSpace(result)
 
