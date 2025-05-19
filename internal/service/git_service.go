@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -74,13 +75,13 @@ func (g *GitService) DetectDiffChanges() ([]string, string, error) {
 }
 
 func (g *GitService) CommitChanges(message string, quiet *bool) error {
-	output, err := exec.Command("git", "commit", "-m", message).Output()
-	if err != nil {
-		return fmt.Errorf("failed to commit changes. %v", err)
-	}
-
+	cmd := exec.Command("git", "commit", "-m", message)
 	if !*quiet {
-		fmt.Println(string(output))
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to commit changes. %v", err)
 	}
 
 	return nil
