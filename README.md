@@ -33,13 +33,13 @@ go install github.com/tfkhdyt/geminicommit@latest
 #    https://aistudio.google.com/app/apikey
 
 # 3. Configure your API key
-geminicommit config key set <your-api-key>
+gmc config key set <your-api-key>
 
 # 4. Stage your changes
 git add <file>
 
 # 5. Generate and commit
-geminicommit
+gmc
 ```
 
 ---
@@ -69,7 +69,7 @@ geminicommit
 1. Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 2. Set your key:
    ```sh
-   geminicommit config key set <your-api-key>
+   gmc config key set <your-api-key>
    ```
 
 ---
@@ -80,9 +80,9 @@ geminicommit
    ```sh
    git add <file>
    ```
-2. Run geminicommit:
+2. Run the CLI:
    ```sh
-   geminicommit
+   gmc
    ```
 3. Review and edit the AI-generated message if needed.
 4. geminicommit will commit your changes with the generated message.
@@ -93,27 +93,27 @@ geminicommit
 
 ```sh
 # Preview commit without making changes
-geminicommit --dry-run
+gmc --dry-run
 
 # Display the diff before committing
-geminicommit --show-diff
+gmc --show-diff
 
 # Set maximum commit message length (default: 72 characters)
-geminicommit --max-length 50
+gmc --max-length 50
 
 # Generate commit messages in different languages
-geminicommit --language spanish
-geminicommit --language french
+gmc --language spanish
+gmc --language french
 
 # Reference specific issue numbers
-geminicommit --issue "#123"
-geminicommit --issue "JIRA-456"
+gmc --issue "#123"
+gmc --issue "JIRA-456"
 
 # Skip git commit-msg hook verification
-geminicommit --no-verify
+gmc --no-verify
 
 # Push committed changes to remote repository
-geminicommit --push
+gmc --push
 ```
 
 #### Auto Issue Detection
@@ -129,16 +129,16 @@ geminicommit automatically detects issue numbers from branch names using common 
 
 ```sh
 # Comprehensive example: dry run with diff, custom length, and language
-geminicommit --dry-run --show-diff --max-length 60 --language spanish
+gmc --dry-run --show-diff --max-length 60 --language spanish
 
 # Production workflow: commit and push with issue reference
-geminicommit --issue "#123" --push --no-verify
+gmc --issue "#123" --push --no-verify
 ```
 
 For more options:
 
 ```sh
-geminicommit --help
+gmc --help
 ```
 
 ---

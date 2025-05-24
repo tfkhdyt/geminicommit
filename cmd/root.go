@@ -35,10 +35,10 @@ var (
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:     "geminicommit",
+	Use:     "gmc",
 	Short:   "CLI that writes your git commit messages for you with Google Gemini AI",
 	Long:    "CLI that writes your git commit messages for you with Google Gemini AI",
-	Version: "0.4.0",
+	Version: "0.4.1",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: rootHandler.RootCommand(
