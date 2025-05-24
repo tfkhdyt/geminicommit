@@ -23,6 +23,7 @@ var (
 	model       string
 	noConfirm   = false
 	quiet       = false
+	push        = false
 	rootHandler = handler.NewRootHandler()
 )
 
@@ -41,6 +42,7 @@ var RootCmd = &cobra.Command{
 		&model,
 		&noConfirm,
 		&quiet,
+		&push,
 	),
 }
 
@@ -69,6 +71,8 @@ func init() {
 		BoolVarP(&noConfirm, "yes", "y", noConfirm, "skip confirmation prompt")
 	RootCmd.Flags().
 		BoolVarP(&quiet, "quiet", "q", quiet, "suppress output (only works with --yes)")
+	RootCmd.Flags().
+		BoolVarP(&push, "push", "p", push, "push committed changes to remote repository")
 	RootCmd.Flags().
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
 	RootCmd.Flags().

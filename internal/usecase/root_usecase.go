@@ -81,6 +81,7 @@ func (r *RootUsecase) RootCommand(
 	model *string,
 	noConfirm *bool,
 	quiet *bool,
+	push *bool,
 ) error {
 	client, errClient := genai.NewClient(
 		ctx,
@@ -176,7 +177,7 @@ generate:
 		}
 
 		if *noConfirm {
-			if err := r.confirmAction(message, quiet); err != nil {
+			if err := r.confirmAction(message, quiet, push); err != nil {
 				return err
 			}
 
@@ -205,7 +206,7 @@ generate:
 
 		switch selectedAction {
 		case confirm:
-			if err := r.confirmAction(message, quiet); err != nil {
+			if err := r.confirmAction(message, quiet, push); err != nil {
 				return err
 			}
 
@@ -213,7 +214,7 @@ generate:
 		case regenerate:
 			continue
 		case edit:
-			if err := r.editAction(message); err != nil {
+			if err := r.editAction(message, push); err != nil {
 				return err
 			}
 
@@ -234,7 +235,7 @@ generate:
 	return nil
 }
 
-func (r *RootUsecase) confirmAction(message string, quiet *bool) error {
+func (r *RootUsecase) confirmAction(message string, quiet *bool, push *bool) error {
 	if err := r.gitService.CommitChanges(message, quiet); err != nil {
 		return err
 	}
@@ -243,10 +244,20 @@ func (r *RootUsecase) confirmAction(message string, quiet *bool) error {
 		color.New(color.FgGreen).Println("✔ Successfully committed!")
 	}
 
+	if *push {
+		if err := r.gitService.PushChanges(quiet); err != nil {
+			return err
+		}
+
+		if !*quiet {
+			color.New(color.FgGreen).Println("✔ Successfully pushed!")
+		}
+	}
+
 	return nil
 }
 
-func (r *RootUsecase) editAction(message string) error {
+func (r *RootUsecase) editAction(message string, push *bool) error {
 	if err := huh.NewForm(
 		huh.NewGroup(
 			huh.NewText().Title("Edit commit message manually").CharLimit(1000).Value(&message),
@@ -257,7 +268,7 @@ func (r *RootUsecase) editAction(message string) error {
 
 	quiet := false
 
-	if err := r.confirmAction(message, &quiet); err != nil {
+	if err := r.confirmAction(message, &quiet, push); err != nil {
 		return err
 	}
 

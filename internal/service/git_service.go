@@ -87,6 +87,19 @@ func (g *GitService) CommitChanges(message string, quiet *bool) error {
 	return nil
 }
 
+func (g *GitService) PushChanges(quiet *bool) error {
+	cmd := exec.Command("git", "push")
+	if !*quiet {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to push changes. %v", err)
+	}
+
+	return nil
+}
+
 func (g *GitService) GetLastCommitMessages(count int) ([]string, error) {
 	// Command to get only commit messages
 	cmd := exec.Command("git", "log",

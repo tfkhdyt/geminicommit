@@ -39,6 +39,7 @@ func (r *RootHandler) RootCommand(
 	model *string,
 	noConfirm *bool,
 	quiet *bool,
+	push *bool,
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
 		modelFromConfig := viper.GetString("api.model")
@@ -61,7 +62,7 @@ func (r *RootHandler) RootCommand(
 			os.Exit(1)
 		}
 
-		err := r.useCase.RootCommand(ctx, apiKey, stageAll, userContext, model, noConfirm, quiet)
+		err := r.useCase.RootCommand(ctx, apiKey, stageAll, userContext, model, noConfirm, quiet, push)
 		cobra.CheckErr(err)
 	}
 }
