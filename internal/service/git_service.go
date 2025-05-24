@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -126,4 +127,51 @@ func (g *GitService) GetLastCommitMessages(count int) ([]string, error) {
 	}
 
 	return result, nil
+}
+
+func (g *GitService) DetectIssueFromBranch() (string, error) {
+	cmd := exec.Command("git", "branch", "--show-current")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current branch: %v", err)
+	}
+
+	branchName := strings.TrimSpace(string(output))
+
+	// Common patterns for issue detection in branch names
+	patterns := []string{
+		`#(\d+)`,      // #123
+		`(\d+)-`,      // 123-feature
+		`-(\d+)-`,     // feature-123-description
+		`issue-(\d+)`, // issue-123
+		`fix-(\d+)`,   // fix-123
+		`feat-(\d+)`,  // feat-123
+		`bug-(\d+)`,   // bug-123
+	}
+
+	for _, pattern := range patterns {
+		if matches := regexp.MustCompile(pattern).FindStringSubmatch(branchName); len(matches) > 1 {
+			return matches[1], nil
+		}
+	}
+
+	return "", nil
+}
+
+func (g *GitService) CommitChangesWithOptions(message string, quiet *bool, noVerify *bool) error {
+	args := []string{"commit", "-m", message}
+	if *noVerify {
+		args = append(args, "--no-verify")
+	}
+
+	cmd := exec.Command("git", args...)
+	if !*quiet {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to commit changes. %v", err)
+	}
+
+	return nil
 }

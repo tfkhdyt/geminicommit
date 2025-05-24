@@ -82,6 +82,12 @@ func (r *RootUsecase) RootCommand(
 	noConfirm *bool,
 	quiet *bool,
 	push *bool,
+	dryRun *bool,
+	showDiff *bool,
+	maxLength *int,
+	language *string,
+	issue *string,
+	noVerify *bool,
 ) error {
 	client, errClient := genai.NewClient(
 		ctx,
@@ -149,6 +155,26 @@ func (r *RootUsecase) RootCommand(
 
 	relatedFiles := r.getRelatedFiles(files, quiet)
 
+	// Auto-detect issue number from branch name if not provided
+	if *issue == "" {
+		detectedIssue, err := r.gitService.DetectIssueFromBranch()
+		if err == nil && detectedIssue != "" {
+			*issue = detectedIssue
+			if !*quiet {
+				color.New(color.FgCyan).Printf("Auto-detected issue: %s\n", detectedIssue)
+			}
+		}
+	}
+
+	// Show diff if requested
+	if *showDiff {
+		if !*quiet {
+			underline.Println("\nDiff to be analyzed:")
+			fmt.Println(diff)
+			fmt.Println()
+		}
+	}
+
 generate:
 	for {
 		messageChan := make(chan string, 1)
@@ -157,13 +183,13 @@ generate:
 			if err := spinner.New().
 				Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *model)).
 				Action(func() {
-					r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, messageChan)
+					r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, maxLength, language, issue, messageChan)
 				}).
 				Run(); err != nil {
 				return err
 			}
 		} else {
-			r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, messageChan)
+			r.analyzeToChannel(client, ctx, diff, userContext, relatedFiles, model, maxLength, language, issue, messageChan)
 		}
 
 		message := <-messageChan
@@ -177,7 +203,7 @@ generate:
 		}
 
 		if *noConfirm {
-			if err := r.confirmAction(message, quiet, push); err != nil {
+			if err := r.confirmAction(message, quiet, push, dryRun, noVerify); err != nil {
 				return err
 			}
 
@@ -206,7 +232,7 @@ generate:
 
 		switch selectedAction {
 		case confirm:
-			if err := r.confirmAction(message, quiet, push); err != nil {
+			if err := r.confirmAction(message, quiet, push, dryRun, noVerify); err != nil {
 				return err
 			}
 
@@ -214,7 +240,7 @@ generate:
 		case regenerate:
 			continue
 		case edit:
-			if err := r.editAction(message, push); err != nil {
+			if err := r.editAction(message, push, dryRun, noVerify); err != nil {
 				return err
 			}
 
@@ -235,8 +261,19 @@ generate:
 	return nil
 }
 
-func (r *RootUsecase) confirmAction(message string, quiet *bool, push *bool) error {
-	if err := r.gitService.CommitChanges(message, quiet); err != nil {
+func (r *RootUsecase) confirmAction(message string, quiet *bool, push *bool, dryRun *bool, noVerify *bool) error {
+	if *dryRun {
+		if !*quiet {
+			color.New(color.FgYellow).Println("🔍 DRY RUN - No changes will be made")
+			color.New(color.FgCyan).Printf("Would commit with message: %s\n", message)
+			if *push {
+				color.New(color.FgCyan).Println("Would push changes to remote repository")
+			}
+		}
+		return nil
+	}
+
+	if err := r.gitService.CommitChangesWithOptions(message, quiet, noVerify); err != nil {
 		return err
 	}
 
@@ -257,7 +294,7 @@ func (r *RootUsecase) confirmAction(message string, quiet *bool, push *bool) err
 	return nil
 }
 
-func (r *RootUsecase) editAction(message string, push *bool) error {
+func (r *RootUsecase) editAction(message string, push *bool, dryRun *bool, noVerify *bool) error {
 	if err := huh.NewForm(
 		huh.NewGroup(
 			huh.NewText().Title("Edit commit message manually").CharLimit(1000).Value(&message),
@@ -268,7 +305,7 @@ func (r *RootUsecase) editAction(message string, push *bool) error {
 
 	quiet := false
 
-	if err := r.confirmAction(message, &quiet, push); err != nil {
+	if err := r.confirmAction(message, &quiet, push, dryRun, noVerify); err != nil {
 		return err
 	}
 
@@ -294,7 +331,9 @@ func (r *RootUsecase) analyzeToChannel(
 	userContext *string,
 	relatedFiles map[string]string,
 	model *string,
-	// lastCommit []string,
+	maxLength *int,
+	language *string,
+	issue *string,
 	messageChan chan string,
 ) {
 	message, err := r.geminiService.AnalyzeChanges(
@@ -304,7 +343,9 @@ func (r *RootUsecase) analyzeToChannel(
 		userContext,
 		&relatedFiles,
 		model,
-		// lastCommit,
+		maxLength,
+		language,
+		issue,
 	)
 	if err != nil {
 		messageChan <- ""

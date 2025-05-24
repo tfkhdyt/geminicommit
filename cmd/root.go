@@ -24,6 +24,12 @@ var (
 	noConfirm   = false
 	quiet       = false
 	push        = false
+	dryRun      = false
+	showDiff    = false
+	maxLength   = 72
+	language    = "english"
+	issue       string
+	noVerify    = false
 	rootHandler = handler.NewRootHandler()
 )
 
@@ -43,6 +49,12 @@ var RootCmd = &cobra.Command{
 		&noConfirm,
 		&quiet,
 		&push,
+		&dryRun,
+		&showDiff,
+		&maxLength,
+		&language,
+		&issue,
+		&noVerify,
 	),
 }
 
@@ -77,6 +89,18 @@ func init() {
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
 	RootCmd.Flags().
 		StringVarP(&model, "model", "m", "gemini-2.0-flash", "google gemini model to use")
+	RootCmd.Flags().
+		BoolVarP(&dryRun, "dry-run", "d", dryRun, "run the command without making any changes")
+	RootCmd.Flags().
+		BoolVarP(&showDiff, "show-diff", "s", showDiff, "show the diff before committing")
+	RootCmd.Flags().
+		IntVarP(&maxLength, "max-length", "l", maxLength, "maximum length of the commit message")
+	RootCmd.Flags().
+		StringVarP(&language, "language", "g", language, "language of the commit message")
+	RootCmd.Flags().
+		StringVarP(&issue, "issue", "i", "", "issue number or title")
+	RootCmd.Flags().
+		BoolVarP(&noVerify, "no-verify", "v", noVerify, "skip git commit-msg hook verification")
 }
 
 // initConfig reads in config file and ENV variables if set.

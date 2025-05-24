@@ -36,6 +36,9 @@ func (g *GeminiService) GetUserPrompt(
 	context *string,
 	diff string,
 	files []string,
+	maxLength *int,
+	language *string,
+	issue *string,
 	// lastCommits []string,
 ) (string, error) {
 	if *context != "" {
@@ -45,18 +48,30 @@ func (g *GeminiService) GetUserPrompt(
 		*context = ""
 	}
 
-	return fmt.Sprintf(
+	prompt := fmt.Sprintf(
 		`%s
 
 Code diff:
 %s
 
 Neighboring files:
-%s`,
+%s
+
+Requirements:
+- Maximum commit message length: %d characters
+- Language: %s`,
 		*context,
 		diff,
 		strings.Join(files, ", "),
-	), nil
+		*maxLength,
+		*language,
+	)
+
+	if *issue != "" {
+		prompt += fmt.Sprintf("\n- Reference issue: %s", *issue)
+	}
+
+	return prompt, nil
 }
 
 func (g *GeminiService) AnalyzeChanges(
@@ -66,6 +81,9 @@ func (g *GeminiService) AnalyzeChanges(
 	userContext *string,
 	relatedFiles *map[string]string,
 	modelName *string,
+	maxLength *int,
+	language *string,
+	issue *string,
 	// lastCommits []string,
 ) (string, error) {
 	// format relatedFiles to be dir : files
@@ -74,9 +92,19 @@ func (g *GeminiService) AnalyzeChanges(
 		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s/%s", dir, ls))
 	}
 
-	userPrompt, err := g.GetUserPrompt(userContext, diff, relatedFilesArray)
+	userPrompt, err := g.GetUserPrompt(userContext, diff, relatedFilesArray, maxLength, language, issue)
 	if err != nil {
 		return "", err
+	}
+
+	// Update system prompt to include language and length requirements
+	enhancedSystemPrompt := g.systemPrompt
+	if *language != "english" {
+		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Generate the commit message in %s language.", *language)
+	}
+	enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Keep the commit message under %d characters.", *maxLength)
+	if *issue != "" {
+		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Reference issue %s in the commit message.", *issue)
 	}
 
 	temp := float32(0.2)
@@ -102,7 +130,7 @@ func (g *GeminiService) AnalyzeChanges(
 		},
 		SystemInstruction: &genai.Content{
 			Role:  genai.RoleModel,
-			Parts: []*genai.Part{{Text: g.systemPrompt}},
+			Parts: []*genai.Part{{Text: enhancedSystemPrompt}},
 		},
 	})
 	if err != nil {
