@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/charmbracelet/huh/spinner"
+	"github.com/fatih/color"
 )
 
 type GitService struct{}
@@ -171,6 +175,121 @@ func (g *GitService) CommitChangesWithOptions(message string, quiet *bool, noVer
 	}
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to commit changes. %v", err)
+	}
+
+	return nil
+}
+
+// DetectAndPrepareChanges handles staging, file detection, and preparation
+func (g *GitService) DetectAndPrepareChanges(opts *CommitOptions) (*PreCommitData, error) {
+	if *opts.StageAll {
+		if err := g.StageAll(); err != nil {
+			return nil, err
+		}
+	}
+
+	filesChan := make(chan []string, 1)
+	diffChan := make(chan string, 1)
+
+	if err := spinner.New().
+		Title("Detecting staged files").
+		Action(func() {
+			files, diff, err := g.DetectDiffChanges()
+			if err != nil {
+				filesChan <- []string{}
+				diffChan <- ""
+				return
+			}
+
+			filesChan <- files
+			diffChan <- diff
+		}).
+		Run(); err != nil {
+		return nil, err
+	}
+
+	files, diff := <-filesChan, <-diffChan
+
+	if len(files) == 0 {
+		return nil, fmt.Errorf(
+			"no staged changes found. stage your changes manually, or automatically stage all changes with the `--all` flag",
+		)
+	}
+
+	relatedFiles := g.getRelatedFiles(files, opts.Quiet)
+
+	// Auto-detect issue number from branch name if not provided
+	issue := *opts.Issue
+	if issue == "" {
+		detectedIssue, err := g.DetectIssueFromBranch()
+		if err == nil && detectedIssue != "" {
+			issue = detectedIssue
+			if !*opts.Quiet {
+				color.New(color.FgCyan).Printf("Auto-detected issue: %s\n", detectedIssue)
+			}
+		}
+	}
+
+	return &PreCommitData{
+		Files:        files,
+		Diff:         diff,
+		RelatedFiles: relatedFiles,
+		Issue:        issue,
+	}, nil
+}
+
+// getRelatedFiles discovers related files in the same directories
+func (g *GitService) getRelatedFiles(files []string, quiet *bool) map[string]string {
+	relatedFiles := make(map[string]string)
+	visitedDirs := make(map[string]bool)
+
+	for _, file := range files {
+		dir := filepath.Dir(file)
+		if !visitedDirs[dir] {
+			lsEntry, err := os.ReadDir(dir)
+			if err == nil {
+				var ls []string
+				for _, entry := range lsEntry {
+					ls = append(ls, entry.Name())
+				}
+				relatedFiles[dir] = strings.Join(ls, ", ")
+				visitedDirs[dir] = true
+			}
+		}
+	}
+
+	return relatedFiles
+}
+
+// ConfirmAction performs the actual commit and optional push
+func (g *GitService) ConfirmAction(message string, quiet *bool, push *bool, dryRun *bool, noVerify *bool) error {
+	if *dryRun {
+		if !*quiet {
+			color.New(color.FgYellow).Println("🔍 DRY RUN - No changes will be made")
+			color.New(color.FgCyan).Printf("Would commit with message: %s\n", message)
+			if *push {
+				color.New(color.FgCyan).Println("Would push changes to remote repository")
+			}
+		}
+		return nil
+	}
+
+	if err := g.CommitChangesWithOptions(message, quiet, noVerify); err != nil {
+		return err
+	}
+
+	if !*quiet {
+		color.New(color.FgGreen).Println("✔ Successfully committed!")
+	}
+
+	if *push {
+		if err := g.PushChanges(quiet); err != nil {
+			return err
+		}
+
+		if !*quiet {
+			color.New(color.FgGreen).Println("✔ Successfully pushed!")
+		}
 	}
 
 	return nil

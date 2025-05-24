@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/charmbracelet/huh/spinner"
+	"github.com/fatih/color"
 	"google.golang.org/genai"
 )
 
@@ -15,6 +17,30 @@ var systemPrompt string
 
 type GeminiService struct {
 	systemPrompt string
+}
+
+// CommitOptions contains options for commit generation
+type CommitOptions struct {
+	StageAll    *bool
+	UserContext *string
+	Model       *string
+	NoConfirm   *bool
+	Quiet       *bool
+	Push        *bool
+	DryRun      *bool
+	ShowDiff    *bool
+	MaxLength   *int
+	Language    *string
+	Issue       *string
+	NoVerify    *bool
+}
+
+// PreCommitData contains data about the changes to be committed
+type PreCommitData struct {
+	Files        []string
+	Diff         string
+	RelatedFiles map[string]string
+	Issue        string
 }
 
 var (
@@ -30,6 +56,68 @@ func NewGeminiService() *GeminiService {
 	})
 
 	return geminiService
+}
+
+// GenerateCommitMessage creates a commit message using AI analysis with UI feedback
+func (g *GeminiService) GenerateCommitMessage(
+	client *genai.Client,
+	ctx context.Context,
+	data *PreCommitData,
+	opts *CommitOptions,
+) (string, error) {
+	messageChan := make(chan string, 1)
+
+	if !*opts.Quiet {
+		if err := spinner.New().
+			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *opts.Model)).
+			Action(func() {
+				g.analyzeToChannel(client, ctx, data, opts, messageChan)
+			}).
+			Run(); err != nil {
+			return "", err
+		}
+	} else {
+		g.analyzeToChannel(client, ctx, data, opts, messageChan)
+	}
+
+	message := <-messageChan
+	if !*opts.Quiet {
+		underline := color.New(color.Underline)
+		underline.Println("\nChanges analyzed!")
+	}
+
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return "", fmt.Errorf("no commit messages were generated. try again")
+	}
+
+	return message, nil
+}
+
+// analyzeToChannel performs the actual AI analysis and sends result to channel
+func (g *GeminiService) analyzeToChannel(
+	client *genai.Client,
+	ctx context.Context,
+	data *PreCommitData,
+	opts *CommitOptions,
+	messageChan chan string,
+) {
+	message, err := g.AnalyzeChanges(
+		client,
+		ctx,
+		data.Diff,
+		opts.UserContext,
+		&data.RelatedFiles,
+		opts.Model,
+		opts.MaxLength,
+		opts.Language,
+		&data.Issue,
+	)
+	if err != nil {
+		messageChan <- ""
+	} else {
+		messageChan <- message
+	}
 }
 
 func (g *GeminiService) GetUserPrompt(
