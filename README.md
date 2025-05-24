@@ -17,6 +17,9 @@
 - **Conventional Commits:** Ensures messages follow best practices for readability and automation.
 - **Cross-Platform:** Works on Linux, Windows, and macOS.
 - **Open Source:** Free to use and contribute.
+- **Automatic Push:** Push committed changes to remote repository with `--push` flag.
+- **Advanced Customization:** Fine-tune commit messages with various flags and options.
+- **Smart Issue Detection:** Automatically detects and references issue numbers from branch names.
 
 ---
 
@@ -83,6 +86,54 @@ geminicommit
    ```
 3. Review and edit the AI-generated message if needed.
 4. geminicommit will commit your changes with the generated message.
+
+### Advanced Usage & Customization
+
+#### Commit Message Customization Flags
+
+```sh
+# Preview commit without making changes
+geminicommit --dry-run
+
+# Display the diff before committing
+geminicommit --show-diff
+
+# Set maximum commit message length (default: 72 characters)
+geminicommit --max-length 50
+
+# Generate commit messages in different languages
+geminicommit --language spanish
+geminicommit --language french
+
+# Reference specific issue numbers
+geminicommit --issue "#123"
+geminicommit --issue "JIRA-456"
+
+# Skip git commit-msg hook verification
+geminicommit --no-verify
+
+# Push committed changes to remote repository
+geminicommit --push
+```
+
+#### Auto Issue Detection
+
+geminicommit automatically detects issue numbers from branch names using common patterns:
+
+- `feature-123-description` → references issue #123
+- `fix-456-bug` → references issue #456
+- `#789-feature` → references issue #789
+- `issue-101` → references issue #101
+
+#### Combining Options
+
+```sh
+# Comprehensive example: dry run with diff, custom length, and language
+geminicommit --dry-run --show-diff --max-length 60 --language spanish
+
+# Production workflow: commit and push with issue reference
+geminicommit --issue "#123" --push --no-verify
+```
 
 For more options:
 
