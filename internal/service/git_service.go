@@ -374,6 +374,23 @@ func (g *GitService) CreatePullRequest(
 		return nil
 	}
 
+	// Get the current branch name
+	branchName, err := g.GetCurrentBranchName()
+	if err != nil {
+		return err
+	}
+
+	// Get the remote name
+	remoteName, err := g.GetRemoteName()
+	if err != nil {
+		return err
+	}
+
+	// Push the current branch to the remote
+	if err := g.PushBranch(remoteName, branchName, quiet); err != nil {
+		return err
+	}
+
 	args := []string{"pr", "create", "--title", title, "--body", body}
 	if *draft {
 		args = append(args, "--draft")
@@ -393,5 +410,47 @@ func (g *GitService) CreatePullRequest(
 		color.New(color.FgGreen).Println("✔ Successfully created a pull request!")
 	}
 
+	return nil
+}
+
+func (g *GitService) GetCurrentBranchName() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current branch name: %v", err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+func (g *GitService) GetRemoteName() (string, error) {
+	remotesOutput, err := exec.Command("git", "remote").Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get remotes: %v", err)
+	}
+	remotes := strings.Fields(string(remotesOutput))
+	if len(remotes) == 0 {
+		return "", fmt.Errorf("no git remotes configured")
+	}
+
+	// Prefer 'origin' if it exists
+	remoteName := remotes[0]
+	for _, r := range remotes {
+		if r == "origin" {
+			remoteName = r
+			break
+		}
+	}
+	return remoteName, nil
+}
+
+func (g *GitService) PushBranch(remoteName, branchName string, quiet *bool) error {
+	cmd := exec.Command("git", "push", "-u", remoteName, branchName)
+	if !*quiet {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to push branch '%s' to remote '%s': %v", branchName, remoteName, err)
+	}
 	return nil
 }
