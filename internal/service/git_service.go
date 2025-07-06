@@ -358,10 +358,13 @@ func (g *GitService) GetDiff() (*PreCommitData, error) {
 }
 
 func (g *GitService) CreatePullRequest(
-	title string,
+	message string,
 	quiet *bool,
 	dryRun *bool,
+	draft *bool,
 ) error {
+	title, body, _ := strings.Cut(message, "\n")
+
 	if *dryRun {
 		if !*quiet {
 			color.New(color.FgYellow).Println("🔍 DRY RUN - No changes will be made")
@@ -371,7 +374,12 @@ func (g *GitService) CreatePullRequest(
 		return nil
 	}
 
-	cmd := exec.Command("gh", "pr", "create", "--title", title, "--body", "")
+	args := []string{"pr", "create", "--title", title, "--body", body}
+	if *draft {
+		args = append(args, "--draft")
+	}
+
+	cmd := exec.Command("gh", args...)
 	if !*quiet {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

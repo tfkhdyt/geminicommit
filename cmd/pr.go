@@ -13,6 +13,7 @@ import (
 
 var (
 	prHandler = handler.NewPRHandler()
+	draft     = false
 )
 
 // prCmd represents the pr command
@@ -30,6 +31,7 @@ var prCmd = &cobra.Command{
 		&maxLength,
 		&language,
 		&userContext,
+		&draft,
 	),
 }
 
@@ -60,4 +62,6 @@ func init() {
 		StringVarP(&language, "language", "g", language, "language of the pull request title")
 	prCmd.Flags().
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the pull request title")
+	prCmd.Flags().
+		BoolVar(&draft, "draft", draft, "create a draft pull request")
 }

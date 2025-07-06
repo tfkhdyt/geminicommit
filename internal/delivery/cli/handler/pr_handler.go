@@ -45,6 +45,7 @@ func (p *PRHandler) PRCommand(
 	maxLength *int,
 	language *string,
 	userContext *string,
+	draft *bool,
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
 		modelFromConfig := viper.GetString("api.model")
@@ -67,7 +68,19 @@ func (p *PRHandler) PRCommand(
 			os.Exit(1)
 		}
 
-		err := p.useCase.PRCommand(ctx, apiKey, model, noConfirm, quiet, dryRun, showDiff, maxLength, language, userContext)
+		err := p.useCase.PRCommand(
+			ctx,
+			apiKey,
+			model,
+			noConfirm,
+			quiet,
+			dryRun,
+			showDiff,
+			maxLength,
+			language,
+			userContext,
+			draft,
+		)
 		cobra.CheckErr(err)
 	}
 }

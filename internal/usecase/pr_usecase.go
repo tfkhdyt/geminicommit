@@ -70,6 +70,7 @@ func (p *PRUsecase) PRCommand(
 	maxLength *int,
 	language *string,
 	userContext *string,
+	draft *bool,
 ) error {
 	client, err := p.initializeGeminiClient(ctx, apiKey)
 	if err != nil {
@@ -125,6 +126,7 @@ func (p *PRUsecase) PRCommand(
 				finalMessage,
 				opts.Quiet,
 				opts.DryRun,
+				draft,
 			); err != nil {
 				return err
 			}
