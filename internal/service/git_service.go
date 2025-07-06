@@ -294,3 +294,96 @@ func (g *GitService) ConfirmAction(message string, quiet *bool, push *bool, dryR
 
 	return nil
 }
+
+func (g *GitService) GetDiff() (*PreCommitData, error) {
+	// Get all remotes
+	remotesOutput, err := exec.Command("git", "remote").Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get remotes: %v", err)
+	}
+	remotes := strings.Fields(string(remotesOutput))
+	if len(remotes) == 0 {
+		return nil, fmt.Errorf("no git remotes configured")
+	}
+
+	// Prefer 'origin' if it exists
+	remoteName := remotes[0]
+	for _, r := range remotes {
+		if r == "origin" {
+			remoteName = r
+			break
+		}
+	}
+
+	// Fetch the remote to ensure it's up-to-date
+	if err := exec.Command("git", "fetch", remoteName).Run(); err != nil {
+		return nil, fmt.Errorf("failed to fetch remote '%s': %v", remoteName, err)
+	}
+
+	// Get remote details to find the HEAD branch
+	defaultBranchOutput, err := exec.Command(
+		"git",
+		"remote",
+		"show",
+		remoteName,
+	).Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get details for remote '%s': %v", remoteName, err)
+	}
+
+	// Extract the HEAD branch name (e.g., 'main' or 'master')
+	headBranchMatch := regexp.MustCompile(`HEAD branch: (.*)`).
+		FindStringSubmatch(string(defaultBranchOutput))
+	if len(headBranchMatch) < 2 {
+		return nil, fmt.Errorf("could not determine HEAD branch for remote '%s'", remoteName)
+	}
+	headBranchName := headBranchMatch[1]
+
+	// Diff against the remote's HEAD branch
+	diff, err := exec.Command(
+		"git",
+		"diff",
+		fmt.Sprintf("%s/%s", remoteName, headBranchName),
+	).Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get diff against '%s/%s': %v", remoteName, headBranchName, err)
+	}
+
+	return &PreCommitData{
+		Diff:         string(diff),
+		Files:        []string{},
+		RelatedFiles: map[string]string{},
+		Issue:        "",
+	}, nil
+}
+
+func (g *GitService) CreatePullRequest(
+	title string,
+	quiet *bool,
+	dryRun *bool,
+) error {
+	if *dryRun {
+		if !*quiet {
+			color.New(color.FgYellow).Println("🔍 DRY RUN - No changes will be made")
+			color.New(color.FgCyan).
+				Printf("Would create a pull request with title: %s\n", title)
+		}
+		return nil
+	}
+
+	cmd := exec.Command("gh", "pr", "create", "--title", title, "--body", "")
+	if !*quiet {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to create pull request: %v", err)
+	}
+
+	if !*quiet {
+		color.New(color.FgGreen).Println("✔ Successfully created a pull request!")
+	}
+
+	return nil
+}
