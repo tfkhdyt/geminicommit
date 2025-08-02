@@ -14,6 +14,7 @@ import (
 
 	"github.com/tfkhdyt/geminicommit/cmd/config"
 	"github.com/tfkhdyt/geminicommit/internal/delivery/cli/handler"
+	"github.com/tfkhdyt/geminicommit/internal/service"
 )
 
 var (
@@ -88,7 +89,7 @@ func init() {
 	RootCmd.Flags().
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
 	RootCmd.Flags().
-		StringVarP(&model, "model", "m", "gemini-2.5-flash", "google gemini model to use")
+		StringVarP(&model, "model", "m", service.DefaultModel, "google gemini model to use")
 	RootCmd.Flags().
 		BoolVarP(&dryRun, "dry-run", "d", dryRun, "run the command without making any changes")
 	RootCmd.Flags().

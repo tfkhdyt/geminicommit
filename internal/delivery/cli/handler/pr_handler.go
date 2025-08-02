@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/tfkhdyt/geminicommit/internal/service"
 	"github.com/tfkhdyt/geminicommit/internal/usecase"
 )
 
@@ -49,7 +50,7 @@ func (p *PRHandler) PRCommand(
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
 		modelFromConfig := viper.GetString("api.model")
-		if modelFromConfig != "" && *model == "gemini-2.5-flash" {
+		if modelFromConfig != "" && *model == service.DefaultModel {
 			*model = modelFromConfig
 		}
 

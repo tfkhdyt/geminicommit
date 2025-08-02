@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/tfkhdyt/geminicommit/internal/delivery/cli/handler"
+	"github.com/tfkhdyt/geminicommit/internal/service"
 )
 
 var (
@@ -51,7 +52,7 @@ func init() {
 	prCmd.Flags().
 		BoolVarP(&quiet, "quiet", "q", quiet, "suppress output (only works with --yes)")
 	prCmd.Flags().
-		StringVarP(&model, "model", "m", "gemini-2.5-flash", "google gemini model to use")
+		StringVarP(&model, "model", "m", service.DefaultModel, "google gemini model to use")
 	prCmd.Flags().
 		BoolVarP(&dryRun, "dry-run", "d", dryRun, "run the command without making any changes")
 	prCmd.Flags().
