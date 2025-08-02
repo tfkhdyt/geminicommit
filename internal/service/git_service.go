@@ -144,13 +144,14 @@ func (g *GitService) DetectIssueFromBranch() (string, error) {
 
 	// Common patterns for issue detection in branch names
 	patterns := []string{
-		`#(\d+)`,      // #123
-		`(\d+)-`,      // 123-feature
-		`-(\d+)-`,     // feature-123-description
-		`issue-(\d+)`, // issue-123
-		`fix-(\d+)`,   // fix-123
-		`feat-(\d+)`,  // feat-123
-		`bug-(\d+)`,   // bug-123
+		`([A-Z]+-\d+)`, // GEN-123, ELI-1220
+		`#(\d+)`,       // #123
+		`(\d+)-`,       // 123-feature
+		`-(\d+)-`,      // feature-123-description
+		`issue-(\d+)`,  // issue-123
+		`fix-(\d+)`,    // fix-123
+		`feat-(\d+)`,   // feat-123
+		`bug-(\d+)`,    // bug-123
 	}
 
 	for _, pattern := range patterns {
