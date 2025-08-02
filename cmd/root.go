@@ -88,7 +88,7 @@ func init() {
 	RootCmd.Flags().
 		StringVarP(&userContext, "context", "c", "", "additional context to be added to the commit message")
 	RootCmd.Flags().
-		StringVarP(&model, "model", "m", "gemini-2.0-flash", "google gemini model to use")
+		StringVarP(&model, "model", "m", "gemini-2.5-flash", "google gemini model to use")
 	RootCmd.Flags().
 		BoolVarP(&dryRun, "dry-run", "d", dryRun, "run the command without making any changes")
 	RootCmd.Flags().
