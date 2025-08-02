@@ -13,6 +13,7 @@
 ## ✨ Features
 
 - **AI-Generated Commit Messages:** Let Gemini AI analyze your staged changes and suggest concise, descriptive commit messages.
+- **AI-Generated Pull Requests:** Use `gmc pr` to push your branch and open a GitHub pull request with a Gemini-generated conventional title (and body).
 - **Customizable Output:** Tailor the message style and structure to fit your workflow.
 - **Conventional Commits:** Ensures messages follow best practices for readability and automation.
 - **Cross-Platform:** Works on Linux, Windows, and macOS.
@@ -80,12 +81,24 @@ gmc
    ```sh
    git add <file>
    ```
-2. Run the CLI:
+2. Run the CLI to generate a commit:
    ```sh
    gmc
    ```
 3. Review and edit the AI-generated message if needed.
 4. geminicommit will commit your changes with the generated message.
+
+### Create Pull Requests
+
+Use Gemini to draft a PR title & body and open a GitHub pull request:
+
+```sh
+gmc pr              # opens a ready-for-review PR
+gmc pr --draft      # create as draft
+gmc pr --dry-run    # preview without pushing
+```
+
+You can combine `--yes -q`, `--show-diff`, `--language`, and other flags just like the commit command.
 
 ### Advanced Usage & Customization
 
