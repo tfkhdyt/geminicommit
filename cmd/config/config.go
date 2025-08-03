@@ -6,6 +6,7 @@ package config
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/tfkhdyt/geminicommit/cmd/config/baseurl"
 	"github.com/tfkhdyt/geminicommit/cmd/config/key"
 	"github.com/tfkhdyt/geminicommit/cmd/config/model"
 )
@@ -21,7 +22,7 @@ var ConfigCmd = &cobra.Command{
 }
 
 func init() {
-	ConfigCmd.AddCommand(key.KeyCmd, model.KeyCmd)
+	ConfigCmd.AddCommand(key.KeyCmd, model.KeyCmd, baseurl.BaseurlCmd)
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

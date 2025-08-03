@@ -93,19 +93,19 @@ func init() {
 	RootCmd.Flags().
 		StringVarP(&model, "model", "m", service.DefaultModel, "google gemini model to use")
 	RootCmd.Flags().
-		BoolVarP(&dryRun, "dry-run", "d", dryRun, "run the command without making any changes")
+		BoolVarP(&dryRun, "dry-run", "", dryRun, "run the command without making any changes")
 	RootCmd.Flags().
-		BoolVarP(&showDiff, "show-diff", "s", showDiff, "show the diff before committing")
+		BoolVarP(&showDiff, "show-diff", "", showDiff, "show the diff before committing")
 	RootCmd.Flags().
 		IntVarP(&maxLength, "max-length", "l", maxLength, "maximum length of the commit message")
 	RootCmd.Flags().
-		StringVarP(&language, "language", "g", language, "language of the commit message")
+		StringVarP(&language, "language", "", language, "language of the commit message")
 	RootCmd.Flags().
 		StringVarP(&issue, "issue", "i", "", "issue number or title")
 	RootCmd.Flags().
-		BoolVarP(&noVerify, "no-verify", "v", noVerify, "skip git commit-msg hook verification")
+		BoolVarP(&noVerify, "no-verify", "", noVerify, "skip git commit-msg hook verification")
 	RootCmd.Flags().
-		StringVarP(&customBaseUrl, "baseurl", "", customBaseUrl, "specify custom url for Google Gemini Pro API")
+		StringVarP(&customBaseUrl, "baseurl", "", service.DefaultBaseUrl, "specify custom url for Google Gemini Pro API")
 }
 
 // initConfig reads in config file and ENV variables if set.

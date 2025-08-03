@@ -47,11 +47,17 @@ func (p *PRHandler) PRCommand(
 	language *string,
 	userContext *string,
 	draft *bool,
+	customBaseUrl *string,
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
 		modelFromConfig := viper.GetString("api.model")
 		if modelFromConfig != "" && *model == service.DefaultModel {
 			*model = modelFromConfig
+		}
+
+		baseUrlFromConfig := viper.GetString("api.baseurl")
+		if baseUrlFromConfig != "" && *customBaseUrl == service.DefaultBaseUrl {
+			*customBaseUrl = baseUrlFromConfig
 		}
 
 		if *quiet && !*noConfirm {
@@ -81,6 +87,7 @@ func (p *PRHandler) PRCommand(
 			language,
 			userContext,
 			draft,
+			customBaseUrl,
 		)
 		cobra.CheckErr(err)
 	}

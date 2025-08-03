@@ -45,12 +45,20 @@ func NewPRUsecase() *PRUsecase {
 func (p *PRUsecase) initializeGeminiClient(
 	ctx context.Context,
 	apiKey string,
+	customBaseUrl *string,
 ) (*genai.Client, error) {
+	baseUrl := ""
+	if customBaseUrl != nil {
+		baseUrl = *customBaseUrl
+	}
 	client, err := genai.NewClient(
 		ctx,
 		&genai.ClientConfig{
 			APIKey:  apiKey,
 			Backend: genai.BackendGeminiAPI,
+			HTTPOptions: genai.HTTPOptions{
+				BaseURL: baseUrl,
+			},
 		},
 	)
 	if err != nil {
@@ -71,8 +79,9 @@ func (p *PRUsecase) PRCommand(
 	language *string,
 	userContext *string,
 	draft *bool,
+	customBaseUrl *string,
 ) error {
-	client, err := p.initializeGeminiClient(ctx, apiKey)
+	client, err := p.initializeGeminiClient(ctx, apiKey, customBaseUrl)
 	if err != nil {
 		fmt.Printf("Error getting gemini client: %v", err)
 		os.Exit(1)

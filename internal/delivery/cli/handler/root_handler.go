@@ -55,6 +55,11 @@ func (r *RootHandler) RootCommand(
 			*model = modelFromConfig
 		}
 
+		baseUrlFromConfig := viper.GetString("api.baseurl")
+		if baseUrlFromConfig != "" && *customBaseUrl == service.DefaultBaseUrl {
+			*customBaseUrl = baseUrlFromConfig
+		}
+
 		if *quiet && !*noConfirm {
 			*quiet = false
 		}
