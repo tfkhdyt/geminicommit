@@ -18,20 +18,21 @@ import (
 )
 
 var (
-	cfgFile     string
-	stageAll    = false
-	userContext string
-	model       string
-	noConfirm   = false
-	quiet       = false
-	push        = false
-	dryRun      = false
-	showDiff    = false
-	maxLength   = 72
-	language    = "english"
-	issue       string
-	noVerify    = false
-	rootHandler = handler.NewRootHandler()
+	cfgFile       string
+	stageAll      = false
+	userContext   string
+	model         string
+	noConfirm     = false
+	quiet         = false
+	push          = false
+	dryRun        = false
+	showDiff      = false
+	maxLength     = 72
+	language      = "english"
+	issue         string
+	noVerify      = false
+	customBaseUrl string
+	rootHandler   = handler.NewRootHandler()
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -56,6 +57,7 @@ var RootCmd = &cobra.Command{
 		&language,
 		&issue,
 		&noVerify,
+		&customBaseUrl,
 	),
 }
 
@@ -102,6 +104,8 @@ func init() {
 		StringVarP(&issue, "issue", "i", "", "issue number or title")
 	RootCmd.Flags().
 		BoolVarP(&noVerify, "no-verify", "v", noVerify, "skip git commit-msg hook verification")
+	RootCmd.Flags().
+		StringVarP(&customBaseUrl, "baseurl", "", customBaseUrl, "specify custom url for Google Gemini Pro API")
 }
 
 // initConfig reads in config file and ENV variables if set.

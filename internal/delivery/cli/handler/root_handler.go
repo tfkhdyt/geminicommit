@@ -47,6 +47,7 @@ func (r *RootHandler) RootCommand(
 	language *string,
 	issue *string,
 	noVerify *bool,
+	customBaseUrl *string,
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
 		modelFromConfig := viper.GetString("api.model")
@@ -69,7 +70,7 @@ func (r *RootHandler) RootCommand(
 			os.Exit(1)
 		}
 
-		err := r.useCase.RootCommand(ctx, apiKey, stageAll, userContext, model, noConfirm, quiet, push, dryRun, showDiff, maxLength, language, issue, noVerify)
+		err := r.useCase.RootCommand(ctx, apiKey, stageAll, userContext, model, noConfirm, quiet, push, dryRun, showDiff, maxLength, language, issue, noVerify, customBaseUrl)
 		cobra.CheckErr(err)
 	}
 }

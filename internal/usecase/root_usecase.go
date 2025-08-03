@@ -39,12 +39,19 @@ func NewRootUsecase() *RootUsecase {
 	return rootUsecaseInstance
 }
 
-func (r *RootUsecase) initializeGeminiClient(ctx context.Context, apiKey string) (*genai.Client, error) {
+func (r *RootUsecase) initializeGeminiClient(ctx context.Context, apiKey string, customBaseUrl *string) (*genai.Client, error) {
+	baseUrl := ""
+	if customBaseUrl != nil {
+		baseUrl = *customBaseUrl
+	}
 	client, err := genai.NewClient(
 		ctx,
 		&genai.ClientConfig{
 			APIKey:  apiKey,
 			Backend: genai.BackendGeminiAPI,
+			HTTPOptions: genai.HTTPOptions{
+				BaseURL: baseUrl,
+			},
 		},
 	)
 	if err != nil {
@@ -68,9 +75,10 @@ func (r *RootUsecase) RootCommand(
 	language *string,
 	issue *string,
 	noVerify *bool,
+	customBaseUrl *string,
 ) error {
 	// Initialize Gemini client
-	client, err := r.initializeGeminiClient(ctx, apiKey)
+	client, err := r.initializeGeminiClient(ctx, apiKey, customBaseUrl)
 	if err != nil {
 		fmt.Printf("Error getting gemini client: %v", err)
 		os.Exit(1)
