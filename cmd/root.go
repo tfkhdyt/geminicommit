@@ -104,7 +104,7 @@ func init() {
 	RootCmd.Flags().
 		BoolVarP(&noVerify, "no-verify", "v", noVerify, "skip git commit-msg hook verification")
 	RootCmd.Flags().
-		StringVarP(&customBaseUrl, "endpoint", "", customBaseUrl, "specifiy custom endpoint url for Google Gemini Pro API")
+		StringVarP(&customBaseUrl, "baseurl", "", customBaseUrl, "specify custom url for Google Gemini Pro API")
 }
 
 // initConfig reads in config file and ENV variables if set.
