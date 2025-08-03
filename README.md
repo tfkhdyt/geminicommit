@@ -21,6 +21,7 @@
 - **Automatic Push:** Push committed changes to remote repository with `--push` flag.
 - **Advanced Customization:** Fine-tune commit messages with various flags and options.
 - **Smart Issue Detection:** Automatically detects and references issue numbers from branch names.
+- **Custom API Endpoints:** Configure custom base URLs for Google Gemini API endpoints.
 
 ---
 
@@ -36,10 +37,14 @@ go install github.com/tfkhdyt/geminicommit@latest
 # 3. Configure your API key
 gmc config key set <your-api-key>
 
-# 4. Stage your changes
+# 4. (Optional) Configure model and base URL
+gmc config model set gemini-2.5-pro          # optional: change model
+gmc config baseurl set https://your-proxy    # optional: custom endpoint
+
+# 5. Stage your changes
 git add <file>
 
-# 5. Generate and commit
+# 6. Generate and commit
 gmc
 ```
 
@@ -67,11 +72,46 @@ gmc
 
 ## ⚙️ Configuration
 
+### Basic Setup
+
 1. Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 2. Set your key:
    ```sh
    gmc config key set <your-api-key>
    ```
+
+### Advanced Configuration
+
+Configure additional settings using the `gmc config` command:
+
+```sh
+# Set or change the Gemini model (default: gemini-2.5-flash)
+gmc config model set gemini-2.5-pro
+gmc config model show
+
+# Set custom API base URL (for proxy servers or custom endpoints)
+gmc config baseurl set https://your-proxy.example.com
+gmc config baseurl show
+
+# Clear custom base URL (revert to default)
+gmc config baseurl set ""
+
+# View current API key
+gmc config key show
+```
+
+All configuration is stored in `~/.config/geminicommit/config.toml`.
+
+#### Configuration File Format
+
+The configuration file uses TOML format:
+
+```toml
+[api]
+key = "your-api-key"
+model = "gemini-2.5-flash"
+baseurl = "https://your-proxy.example.com"  # optional
+```
 
 ---
 
@@ -98,7 +138,7 @@ gmc pr --draft      # create as draft
 gmc pr --dry-run    # preview without pushing
 ```
 
-You can combine `--yes -q`, `--show-diff`, `--language`, and other flags just like the commit command.
+You can combine `--yes -q`, `--show-diff`, `--language`, `--baseurl`, and other flags just like the commit command.
 
 ### Advanced Usage & Customization
 
@@ -127,6 +167,12 @@ gmc --no-verify
 
 # Push committed changes to remote repository
 gmc --push
+
+# Use custom API endpoint
+gmc --baseurl https://your-proxy.example.com
+
+# Use specific Gemini model
+gmc --model gemini-1.5-pro
 ```
 
 #### Auto Issue Detection
@@ -146,6 +192,9 @@ gmc --dry-run --show-diff --max-length 60 --language spanish
 
 # Production workflow: commit and push with issue reference
 gmc --issue "#123" --push --no-verify
+
+# Using custom endpoint with specific model
+gmc --baseurl https://your-proxy.example.com --model gemini-2.5-pro
 ```
 
 For more options:
