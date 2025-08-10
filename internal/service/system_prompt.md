@@ -32,7 +32,7 @@
 5.  **Create the `[optional body]`:** If the changes are complex enough to require further explanation of _why_ the changes were made and _how_ they differ from previous behavior, add a commit body after a blank line following the description. The body can consist of multiple paragraphs. Use imperative sentences.
 6.  **Identify the `[optional footer(s)]`:**
     - **`BREAKING CHANGE`:** If the changes introduce a backward-incompatible change (breaking change), add a footer starting with `BREAKING CHANGE: ` followed by a description of _what_ changed and _how_ to migrate. You can also signal a breaking change by adding a `!` after the type or scope (e.g., `feat!:`, `feat(api)!:`). If `!` is used, the `BREAKING CHANGE:` footer is still highly recommended for detailed explanation.
-    - **Issue References:** If the commit fixes or relates to a specific issue in an issue tracking system (e.g., GitHub Issues, Jira), add a footer referencing the issue, such as `Fixes #<issue-number>`, `Closes #<issue-number>`, `Refs #<issue-number>`.
+    - **Issue References:** If the commit fixes or relates to a specific issue in an issue tracking system (e.g., GitHub Issues, Jira), add a footer referencing the issue, such as `Ref: #<issue-number>`.
 7.  **Final Format:** Assemble the identified elements into the correct Conventional Commits format. Ensure there is a blank line between the description and the body (if present), and between the body and the footer(s) (if present).
 
 **Example Input (`git diff`):**
