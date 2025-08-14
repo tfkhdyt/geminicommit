@@ -53,26 +53,33 @@ gmc
 ## 🛠️ Installation
 
 - **From Source:**
-  ```sh
-  go install github.com/tfkhdyt/geminicommit@latest
-  ```
   Add To Path:
   - **Zshrc:**
+
     ```sh
     echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.zshrc
     source ~/.zshrc
     ```
+
   - **Bashrc:**
+
     ```sh
     echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.bashrc
     source ~/.bashrc
     ```
+
+  ```sh
+  go install github.com/tfkhdyt/geminicommit@latest
+  ```
+
 - **Standalone Binary:**
   Download from the [releases page](https://github.com/tfkhdyt/geminicommit/releases) and move to a directory in your `PATH`:
   - Linux: `$HOME/.local/bin/` or `/usr/local/bin/`
   - Windows: `%LocalAppData%\Programs\`
   - macOS: `/usr/local/bin/`
+
 - **NixOS:**
+
   ```nix
   environment.systemPackages = [
     pkgs.geminicommit
@@ -87,6 +94,7 @@ gmc
 
 1. Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 2. Set your key:
+
    ```sh
    gmc config key set <your-api-key>
    ```
@@ -129,13 +137,17 @@ baseurl = "https://your-proxy.example.com"  # optional
 ## 📖 Usage
 
 1. Stage your changes:
+
    ```sh
    git add <file>
    ```
+
 2. Run the CLI to generate a commit:
+
    ```sh
    gmc
    ```
+
 3. Review and edit the AI-generated message if needed.
 4. geminicommit will commit your changes with the generated message.
 
