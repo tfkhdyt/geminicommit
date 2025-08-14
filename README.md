@@ -53,6 +53,7 @@ gmc
 ## 🛠️ Installation
 
 - **From Source:**
+
   Add To Path:
   - **Zshrc:**
 
