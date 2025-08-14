@@ -56,6 +56,17 @@ gmc
   ```sh
   go install github.com/tfkhdyt/geminicommit@latest
   ```
+  Add To Path:
+  - **Zshrc:**
+    ```sh
+    echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.zshrc
+    source ~/.zshrc
+    ```
+  - **Bashrc:**
+    ```sh
+    echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.bashrc
+    source ~/.bashrc
+    ```
 - **Standalone Binary:**
   Download from the [releases page](https://github.com/tfkhdyt/geminicommit/releases) and move to a directory in your `PATH`:
   - Linux: `$HOME/.local/bin/` or `/usr/local/bin/`
