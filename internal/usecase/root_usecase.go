@@ -76,6 +76,7 @@ func (r *RootUsecase) RootCommand(
 	issue *string,
 	noVerify *bool,
 	customBaseUrl *string,
+	atomicCommit *bool,
 ) error {
 	// Initialize Gemini client
 	client, err := r.initializeGeminiClient(ctx, apiKey, customBaseUrl)
@@ -95,18 +96,19 @@ func (r *RootUsecase) RootCommand(
 
 	// Prepare commit options
 	opts := &service.CommitOptions{
-		StageAll:    stageAll,
-		UserContext: userContext,
-		Model:       model,
-		NoConfirm:   noConfirm,
-		Quiet:       quiet,
-		Push:        push,
-		DryRun:      dryRun,
-		ShowDiff:    showDiff,
-		MaxLength:   maxLength,
-		Language:    language,
-		Issue:       issue,
-		NoVerify:    noVerify,
+		StageAll:      stageAll,
+		UserContext:   userContext,
+		Model:         model,
+		NoConfirm:     noConfirm,
+		Quiet:         quiet,
+		Push:          push,
+		DryRun:        dryRun,
+		ShowDiff:      showDiff,
+		MaxLength:     maxLength,
+		AtomicCommits: atomicCommit,
+		Language:      language,
+		Issue:         issue,
+		NoVerify:      noVerify,
 	}
 
 	// Detect and prepare changes
@@ -121,6 +123,35 @@ func (r *RootUsecase) RootCommand(
 	// Show diff if requested
 	if *opts.ShowDiff && !*opts.Quiet {
 		r.interactionService.DisplayDiff(data.Diff)
+	}
+	if *opts.AtomicCommits {
+		changes, err := r.geminiService.AtomicMessage(client, ctx, data, opts)
+		if err != nil {
+			return err
+		}
+		for _, c := range changes {
+			selectedAction, finalMessage, err := r.interactionService.HandleUserAction(c.CommitMessage, opts)
+			if err != nil {
+				return err
+			}
+
+			switch selectedAction {
+			case service.ActionConfirm:
+				if err := r.gitService.ConfirmAction(finalMessage, opts.Quiet, opts.Push, opts.DryRun, opts.NoVerify, c.FileIdentifiers); err != nil {
+					return err
+				}
+				return nil
+			case service.ActionRegenerate:
+				continue
+			case service.ActionEditContext:
+				continue
+			case service.ActionCancel:
+				color.New(color.FgRed).Println("Commit cancelled")
+				return nil
+			}
+
+		}
+		return nil
 	}
 
 	// Main generation loop
@@ -137,7 +168,7 @@ func (r *RootUsecase) RootCommand(
 
 		switch selectedAction {
 		case service.ActionConfirm:
-			if err := r.gitService.ConfirmAction(finalMessage, opts.Quiet, opts.Push, opts.DryRun, opts.NoVerify); err != nil {
+			if err := r.gitService.ConfirmAction(finalMessage, opts.Quiet, opts.Push, opts.DryRun, opts.NoVerify, nil); err != nil {
 				return err
 			}
 			return nil
