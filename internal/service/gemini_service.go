@@ -192,7 +192,7 @@ func (g *GeminiService) GetUserPrompt(
 	maxLength *int,
 	language *string,
 	issue *string,
-// lastCommits []string,
+	// lastCommits []string,
 ) (string, error) {
 	if *context != "" {
 		temp := fmt.Sprintf("Use the following context to understand intent: %s", *context)
@@ -234,7 +234,7 @@ func (g *GeminiService) AtomicChangePrompt(
 	maxLength *int,
 	language *string,
 	issue *string,
-// lastCommits []string,
+	// lastCommits []string,
 ) (string, error) {
 	prompt := ""
 	if *context != "" {
@@ -283,7 +283,7 @@ func (g *GeminiService) AnalyzeChanges(
 	maxLength *int,
 	language *string,
 	issue *string,
-// lastCommits []string,
+	// lastCommits []string,
 ) (string, error) {
 	// format relatedFiles to be dir : files
 	relatedFilesArray := make([]string, 0, len(*relatedFiles))
