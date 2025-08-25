@@ -31,6 +31,7 @@ var (
 	issue         string
 	noVerify      = false
 	customBaseUrl string
+	atomicCommits bool
 	rootHandler   = handler.NewRootHandler()
 )
 
@@ -57,6 +58,7 @@ var RootCmd = &cobra.Command{
 		&issue,
 		&noVerify,
 		&customBaseUrl,
+		&atomicCommits,
 	),
 }
 
@@ -103,6 +105,8 @@ func init() {
 		StringVarP(&issue, "issue", "i", "", "issue number or title")
 	RootCmd.Flags().
 		BoolVarP(&noVerify, "no-verify", "v", noVerify, "skip git commit-msg hook verification")
+	RootCmd.Flags().
+		BoolVarP(&atomicCommits, "atomic-commits", "", atomicCommits, "splits changes into atomic commits")
 	RootCmd.Flags().
 		StringVarP(&customBaseUrl, "baseurl", "", customBaseUrl, "specify custom url for Google Gemini Pro API")
 }
