@@ -162,8 +162,11 @@ func (g *GitService) DetectIssueFromBranch() (string, error) {
 	return "", nil
 }
 
-func (g *GitService) CommitChangesWithOptions(message string, quiet *bool, noVerify *bool) error {
+func (g *GitService) CommitChangesWithOptions(message string, quiet *bool, noVerify *bool, files []string) error {
 	args := []string{"commit", "-m", message}
+	for _, f := range files {
+		args = append(args, f)
+	}
 	if *noVerify {
 		args = append(args, "--no-verify")
 	}
@@ -262,7 +265,7 @@ func (g *GitService) getRelatedFiles(files []string, quiet *bool) map[string]str
 }
 
 // ConfirmAction performs the actual commit and optional push
-func (g *GitService) ConfirmAction(message string, quiet *bool, push *bool, dryRun *bool, noVerify *bool) error {
+func (g *GitService) ConfirmAction(message string, quiet *bool, push *bool, dryRun *bool, noVerify *bool, files []string) error {
 	if *dryRun {
 		if !*quiet {
 			color.New(color.FgYellow).Println("🔍 DRY RUN - No changes will be made")
@@ -274,7 +277,7 @@ func (g *GitService) ConfirmAction(message string, quiet *bool, push *bool, dryR
 		return nil
 	}
 
-	if err := g.CommitChangesWithOptions(message, quiet, noVerify); err != nil {
+	if err := g.CommitChangesWithOptions(message, quiet, noVerify, files); err != nil {
 		return err
 	}
 
