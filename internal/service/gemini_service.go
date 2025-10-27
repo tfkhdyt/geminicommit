@@ -261,17 +261,14 @@ func (g *GeminiService) SelectFilesUsingAI(
 ) ([]string, error) {
 	prompt := fmt.Sprintf(
 		`%s
-Determine which files should be staged for commit.
-Return only the list of filenames in the format: "FILES: file1, file2, ...".
-
-Git Info:
+Here's the code diff:
 %s`,
 		*userContext,
 		diff,
 	)
 
-	// Update system prompt to focus on file selection
-	enhancedSystemPrompt := g.systemPrompt + "\n\nIMPORTANT: Respond ONLY with the list of files to stage in the format: \"FILES: file1, file2, ...\"."
+	// Use empty system prompt since we're not using g.systemPrompt
+	enhancedSystemPrompt := "You are an assistant that helps developers decide which files to include in a git commit. Respond ONLY with the list of files to stage in the format: \"FILES: file1, file2, ...\"."
 
 	temp := float32(0.2)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(prompt), &genai.GenerateContentConfig{
