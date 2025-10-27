@@ -36,6 +36,7 @@ func NewRootHandler() *RootHandler {
 func (r *RootHandler) RootCommand(
 	ctx context.Context,
 	stageAll *bool,
+	autoSelect *bool,
 	userContext *string,
 	model *string,
 	noConfirm *bool,
@@ -75,7 +76,7 @@ func (r *RootHandler) RootCommand(
 			os.Exit(1)
 		}
 
-		err := r.useCase.RootCommand(ctx, apiKey, stageAll, userContext, model, noConfirm, quiet, push, dryRun, showDiff, maxLength, language, issue, noVerify, customBaseUrl)
+		err := r.useCase.RootCommand(ctx, apiKey, stageAll, autoSelect, userContext, model, noConfirm, quiet, push, dryRun, showDiff, maxLength, language, issue, noVerify, customBaseUrl)
 		cobra.CheckErr(err)
 	}
 }

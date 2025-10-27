@@ -79,6 +79,52 @@ func (g *GitService) DetectDiffChanges() ([]string, string, error) {
 	return strings.Split(filesStr, "\n"), string(diff), nil
 }
 
+func (g *GitService) GetAllChanges() ([]string, error) {
+	// Get all changed files (including untracked, modified, deleted, etc.)
+	cmd := exec.Command("git", "status", "--porcelain", "--untracked-files=all")
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println("Error getting all changes:", err)
+		return nil, err
+	}
+
+	outputStr := strings.TrimSpace(string(output))
+	if outputStr == "" {
+		return []string{}, nil
+	}
+
+	// Parse the git status output to get just the filenames
+	lines := strings.Split(outputStr, "\n")
+	var files []string
+	for _, line := range lines {
+		if line != "" {
+			// The git status --porcelain format has status followed by space and filename
+			// Examples: "M file", "?? file", "MM file", " A file"
+			line = strings.TrimSpace(line)
+			if len(line) > 2 { // At least "X " + filename
+				// Find the first space after the status and extract filename
+				spaceIndex := strings.Index(line, " ")
+				if spaceIndex != -1 && spaceIndex < len(line)-1 {
+					// Extract filename after the first space
+					filename := strings.TrimSpace(line[spaceIndex+1:])
+					if filename != "" {
+						files = append(files, filename)
+					}
+				} else if len(line) > 2 {
+					// Fallback: if no space found, take everything after the first 3 characters
+					// This handles edge cases, though they shouldn't normally occur
+					filename := strings.TrimSpace(line[2:])
+					if filename != "" {
+						files = append(files, filename)
+					}
+				}
+			}
+		}
+	}
+
+	return files, nil
+}
+
 func (g *GitService) CommitChanges(message string, quiet *bool) error {
 	cmd := exec.Command("git", "commit", "-m", message)
 	if !*quiet {
@@ -193,13 +239,41 @@ func (g *GitService) DetectAndPrepareChanges(opts *CommitOptions) (*PreCommitDat
 	diffChan := make(chan string, 1)
 
 	if err := spinner.New().
-		Title("Detecting staged files").
+		Title("Detecting changes").
 		Action(func() {
-			files, diff, err := g.DetectDiffChanges()
-			if err != nil {
-				filesChan <- []string{}
-				diffChan <- ""
-				return
+			var files []string
+			var diff string
+			var err error
+
+			// If auto-select is enabled, get all changes (not just staged)
+			if *opts.AutoSelect {
+				// Get all changes in working directory (not just staged)
+				allChanges, err := g.GetAllChanges()
+				if err != nil {
+					filesChan <- []string{}
+					diffChan <- ""
+					return
+				}
+
+				// Get full diff of all changes
+				diffCmd := exec.Command("git", "diff", "--diff-algorithm=minimal")
+				diffOutput, err := diffCmd.Output()
+				if err != nil {
+					filesChan <- []string{}
+					diffChan <- ""
+					return
+				}
+
+				files = allChanges
+				diff = string(diffOutput)
+			} else {
+				// For normal flow, get only staged changes
+				files, diff, err = g.DetectDiffChanges()
+				if err != nil {
+					filesChan <- []string{}
+					diffChan <- ""
+					return
+				}
 			}
 
 			filesChan <- files
@@ -212,9 +286,15 @@ func (g *GitService) DetectAndPrepareChanges(opts *CommitOptions) (*PreCommitDat
 	files, diff := <-filesChan, <-diffChan
 
 	if len(files) == 0 {
-		return nil, fmt.Errorf(
-			"no staged changes found. stage your changes manually, or automatically stage all changes with the `--all` flag",
-		)
+		if *opts.AutoSelect {
+			return nil, fmt.Errorf(
+				"no changes found in working directory",
+			)
+		} else {
+			return nil, fmt.Errorf(
+				"no staged changes found. stage your changes manually, or automatically stage all changes with the `--all` flag, or use the `--auto` flag to let AI select changes",
+			)
+		}
 	}
 
 	relatedFiles := g.getRelatedFiles(files, opts.Quiet)
@@ -260,6 +340,29 @@ func (g *GitService) getRelatedFiles(files []string, quiet *bool) map[string]str
 	}
 
 	return relatedFiles
+}
+
+// ResetStaged resets the staged area, unstaging all files
+func (g *GitService) ResetStaged() error {
+	cmd := exec.Command("git", "reset")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to reset staged files: %v", err)
+	}
+	return nil
+}
+
+// StageFiles stages specific files for commit
+func (g *GitService) StageFiles(files []string) error {
+	if len(files) == 0 {
+		return nil
+	}
+
+	args := append([]string{"add"}, files...)
+	cmd := exec.Command("git", args...)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to stage files %v: %v", files, err)
+	}
+	return nil
 }
 
 // ConfirmAction performs the actual commit and optional push
