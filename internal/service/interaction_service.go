@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -165,33 +166,40 @@ func (h *InteractionService) ConfirmAutoSelectedFiles(files []string) (Action, [
 	}
 }
 
-// EditFileList allows the user to manually edit the list of files
+// EditFileList allows the user to select files from the list
 func (h *InteractionService) EditFileList(files []string) ([]string, error) {
-	content := strings.Join(files, "\n")
-	var editedContent string
+	// // Create options from the files, with all initially selected
+	// options := make([]huh.Option[string], len(files))
+	// for i, file := range files {
+	// 	options[i] = huh.NewOption(file, file).Selected(true)
+	// }
 
-	if err := huh.NewForm(
+	// Variable to store selected files
+	var selectedFiles []string
+
+	// Create the multi-select form
+	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewText().
-				Title("Edit file list (one per line)").
-				CharLimit(2000).
-				Value(&editedContent).
-				Placeholder(content),
+			huh.NewMultiSelect[string]().
+				Title("Select files to include in commit").
+				Options(huh.NewOptions(files...)...).
+				Value(&selectedFiles).
+				Height(15),
 		),
-	).Run(); err != nil {
+	)
+
+	err := form.Run()
+	if err != nil {
 		return nil, err
 	}
 
-	// Split and trim whitespace
-	lines := strings.Split(editedContent, "\n")
-	var result []string
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed != "" {
-			result = append(result, trimmed)
-		}
+	if len(selectedFiles) == 0 {
+		// Show appropriate message when no files are selected
+		fmt.Println("No files selected. Operation cancelled.")
+		return nil, errors.New("no files selected")
 	}
-	return result, nil
+
+	return selectedFiles, nil
 }
 
 // AutoFlow orchestrates the complete auto flow using the huh library
