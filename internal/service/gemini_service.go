@@ -66,23 +66,6 @@ func (g *GeminiService) GenerateCommitMessage(
 	data *PreCommitData,
 	opts *CommitOptions,
 ) (string, error) {
-	// Handle --auto flag
-	if *opts.AutoSelect {
-		selectedFiles, err := g.SelectFilesUsingAI(client, ctx, data.Diff, opts.UserContext, opts.Model)
-		if err != nil {
-			return "", err
-		}
-
-		interactionService := NewInteractionService()
-		action, confirmedFiles, err := interactionService.ConfirmAutoSelectedFiles(selectedFiles)
-		if err != nil || action == ActionCancel {
-			return "", fmt.Errorf("operation cancelled")
-		}
-		if action == ActionAutoSelect || action == ActionConfirm {
-			data.Files = confirmedFiles
-		}
-	}
-
 	messageChan := make(chan string, 1)
 
 	if !*opts.Quiet {
