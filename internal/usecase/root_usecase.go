@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/charmbracelet/huh/spinner"
 	"github.com/fatih/color"
 	"google.golang.org/genai"
 
@@ -186,9 +187,24 @@ func (r *RootUsecase) handleAutoFlow(
 ) (*service.PreCommitData, error) {
 	// Step 1: Detect all changes in working directory (already done in calling function)
 	// Step 2: Send diff to AI for file selection
-	selectedFiles, err := r.geminiService.SelectFilesUsingAI(client, ctx, data.Diff, opts.UserContext, opts.Model)
-	if err != nil {
-		return nil, err
+	var selectedFiles []string
+	var err error
+
+	if !*opts.Quiet {
+		err = spinner.New().
+			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *opts.Model)).
+			Action(func() {
+				selectedFiles, err = r.geminiService.SelectFilesUsingAI(client, ctx, data.Diff, opts.UserContext, opts.Model)
+			}).
+			Run()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		selectedFiles, err = r.geminiService.SelectFilesUsingAI(client, ctx, data.Diff, opts.UserContext, opts.Model)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Step 3: Show selected files to user and get their choice
