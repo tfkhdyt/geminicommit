@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/charmbracelet/huh/spinner"
 	"github.com/fatih/color"
 	"google.golang.org/genai"
 
@@ -64,6 +65,7 @@ func (r *RootUsecase) RootCommand(
 	ctx context.Context,
 	apiKey string,
 	stageAll *bool,
+	autoSelect *bool,
 	userContext *string,
 	model *string,
 	noConfirm *bool,
@@ -96,6 +98,7 @@ func (r *RootUsecase) RootCommand(
 	// Prepare commit options
 	opts := &service.CommitOptions{
 		StageAll:    stageAll,
+		AutoSelect:  autoSelect,
 		UserContext: userContext,
 		Model:       model,
 		NoConfirm:   noConfirm,
@@ -115,12 +118,35 @@ func (r *RootUsecase) RootCommand(
 		return err
 	}
 
-	// Display detected files
-	r.interactionService.DisplayDetectedFiles(data.Files, opts.Quiet)
+	// Display detected files (skip this in auto mode since AI will select a subset later)
+	if !*opts.AutoSelect {
+		r.interactionService.DisplayDetectedFiles(data.Files, opts.Quiet)
+	}
 
 	// Show diff if requested
 	if *opts.ShowDiff && !*opts.Quiet {
 		r.interactionService.DisplayDiff(data.Diff)
+	}
+
+	// Check if auto-select flag is set and handle accordingly
+	if *opts.AutoSelect {
+		// Auto flow: Select files with AI, show to user, allow edit/cancel
+		selectedData, err := r.handleAutoFlow(client, ctx, data, opts)
+		if err != nil {
+			return err
+		}
+		data = selectedData // Update data with confirmed files
+
+		// In auto mode, we need to stage only the selected files for the commit
+		// First, unstage everything
+		if err := r.gitService.ResetStaged(); err != nil {
+			return fmt.Errorf("failed to reset staged files: %v", err)
+		}
+
+		// Then stage only the selected files
+		if err := r.gitService.StageFiles(data.Files); err != nil {
+			return fmt.Errorf("failed to stage selected files: %v", err)
+		}
 	}
 
 	// Main generation loop
@@ -149,5 +175,64 @@ func (r *RootUsecase) RootCommand(
 			color.New(color.FgRed).Println("Commit cancelled")
 			return nil
 		}
+	}
+}
+
+// handleAutoFlow implements the complete auto flow as per the flowchart
+func (r *RootUsecase) handleAutoFlow(
+	client *genai.Client,
+	ctx context.Context,
+	data *service.PreCommitData,
+	opts *service.CommitOptions,
+) (*service.PreCommitData, error) {
+	// Step 1: Detect all changes in working directory (already done in calling function)
+	// Step 2: Send diff to AI for file selection
+	var selectedFiles []string
+	var err error
+
+	if !*opts.Quiet {
+		err = spinner.New().
+			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *opts.Model)).
+			Action(func() {
+				selectedFiles, err = r.geminiService.SelectFilesUsingAI(client, ctx, data.Diff, opts.UserContext, opts.Model)
+			}).
+			Run()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		selectedFiles, err = r.geminiService.SelectFilesUsingAI(client, ctx, data.Diff, opts.UserContext, opts.Model)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Step 3: Show selected files to user and get their choice
+	action, confirmedFiles, err := r.interactionService.ConfirmAutoSelectedFiles(selectedFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 4: Handle user choice
+	switch action {
+	case service.ActionCancel:
+		return nil, fmt.Errorf("operation cancelled")
+	case service.ActionEdit:
+		// Open file list editor
+		editedFiles, err := r.interactionService.EditFileList(selectedFiles)
+		if err != nil {
+			return nil, err
+		}
+		// Update data with edited files
+		newData := *data
+		newData.Files = editedFiles
+		return &newData, nil
+	case service.ActionConfirm, service.ActionAutoSelect:
+		// Proceed with selected files
+		newData := *data
+		newData.Files = confirmedFiles
+		return &newData, nil
+	default:
+		return nil, fmt.Errorf("unknown action: %v", action)
 	}
 }

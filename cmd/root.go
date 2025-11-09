@@ -20,6 +20,7 @@ import (
 var (
 	cfgFile       string
 	stageAll      = false
+	autoSelect    = false
 	userContext   string
 	model         string
 	noConfirm     = false
@@ -46,6 +47,7 @@ var RootCmd = &cobra.Command{
 	Run: rootHandler.RootCommand(
 		context.Background(),
 		&stageAll,
+		&autoSelect,
 		&userContext,
 		&model,
 		&noConfirm,
@@ -82,6 +84,8 @@ func init() {
 		StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/geminicommit/config.toml)")
 	RootCmd.Flags().
 		BoolVarP(&stageAll, "all", "a", stageAll, "stage all changes in tracked files")
+	RootCmd.Flags().
+		BoolVarP(&autoSelect, "auto", "", autoSelect, "let AI cherry-pick files to stage")
 	RootCmd.Flags().
 		BoolVarP(&noConfirm, "yes", "y", noConfirm, "skip confirmation prompt")
 	RootCmd.Flags().
