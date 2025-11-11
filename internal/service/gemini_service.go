@@ -258,8 +258,6 @@ Here's the code diff:
 
 	enhancedSystemPrompt := fileSelectionPrompt
 
-	fmt.Println(enhancedSystemPrompt)
-
 	temp := float32(0.2)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(prompt), &genai.GenerateContentConfig{
 		Temperature: &temp,
@@ -357,6 +355,17 @@ func (g *GeminiService) SelectFilesAndGenerateCommit(
 	language *string,
 	issue *string,
 ) ([]string, string, error) {
+	// Validate required parameters
+	if modelName == nil {
+		return nil, "", fmt.Errorf("modelName cannot be nil")
+	}
+	if maxLength == nil {
+		return nil, "", fmt.Errorf("maxLength cannot be nil")
+	}
+	if language == nil {
+		return nil, "", fmt.Errorf("language cannot be nil")
+	}
+
 	// Format relatedFiles to be dir : files
 	relatedFilesArray := make([]string, 0, len(*relatedFiles))
 	for dir, ls := range *relatedFiles {

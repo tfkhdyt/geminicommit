@@ -85,7 +85,7 @@ func init() {
 	RootCmd.Flags().
 		BoolVarP(&stageAll, "all", "a", stageAll, "stage all changes in tracked files")
 	RootCmd.Flags().
-		BoolVarP(&autoSelect, "auto", "", autoSelect, "let AI cherry-pick files to stage")
+		BoolVarP(&autoSelect, "auto", "", autoSelect, "let AI select files and generate commit message")
 	RootCmd.Flags().
 		BoolVarP(&noConfirm, "yes", "y", noConfirm, "skip confirmation prompt")
 	RootCmd.Flags().

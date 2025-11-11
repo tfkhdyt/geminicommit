@@ -226,6 +226,9 @@ func (r *RootUsecase) handleAutoFlow(
 		if err != nil {
 			return nil, err
 		}
+		if commitMessage == "" {
+			return nil, fmt.Errorf("AI returned an empty commit message")
+		}
 	} else {
 		selectedFiles, commitMessage, err = r.geminiService.SelectFilesAndGenerateCommit(
 			client,
@@ -240,6 +243,9 @@ func (r *RootUsecase) handleAutoFlow(
 		)
 		if err != nil {
 			return nil, err
+		}
+		if commitMessage == "" {
+			return nil, fmt.Errorf("AI returned an empty commit message")
 		}
 	}
 
