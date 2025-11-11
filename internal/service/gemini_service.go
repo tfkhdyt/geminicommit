@@ -15,6 +15,9 @@ import (
 //go:embed system_prompt.md
 var systemPrompt string
 
+//go:embed file_selection_prompt.md
+var fileSelectionPrompt string
+
 type GeminiService struct {
 	systemPrompt string
 }
@@ -242,6 +245,16 @@ func (g *GeminiService) SelectFilesUsingAI(
 	userContext *string,
 	modelName *string,
 ) ([]string, error) {
+	// Debug: Log input diff info
+	diffPreview := diff
+	fmt.Println(diff)
+	fmt.Printf("[DEBUG] SelectFilesUsingAI: Input diff length=%d chars, preview: %s\n", len(diff), diffPreview)
+	if userContext != nil && *userContext != "" {
+		fmt.Printf("[DEBUG] SelectFilesUsingAI: User context provided: %s\n", *userContext)
+	} else {
+		fmt.Printf("[DEBUG] SelectFilesUsingAI: No user context provided\n")
+	}
+
 	prompt := fmt.Sprintf(
 		`%s
 Here's the code diff:
@@ -250,8 +263,10 @@ Here's the code diff:
 		diff,
 	)
 
-	// Use empty system prompt since we're not using g.systemPrompt
-	enhancedSystemPrompt := "You are an assistant that helps developers decide which files to include in a git commit. Respond ONLY with the list of files to stage in the format: \"FILES: file1, file2, ...\"."
+	enhancedSystemPrompt := fileSelectionPrompt
+
+	fmt.Printf("[DEBUG] SelectFilesUsingAI: Prompt length=%d chars\n", len(prompt))
+	fmt.Println(enhancedSystemPrompt)
 
 	temp := float32(0.2)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(prompt), &genai.GenerateContentConfig{
@@ -280,10 +295,12 @@ Here's the code diff:
 		},
 	})
 	if err != nil {
+		fmt.Printf("[DEBUG] SelectFilesUsingAI: Error calling AI: %v\n", err)
 		return nil, err
 	}
 
 	result := strings.TrimSpace(resp.Candidates[0].Content.Parts[0].Text)
+	fmt.Printf("[DEBUG] SelectFilesUsingAI: Raw AI response (length=%d): %s\n", len(result), result)
 
 	// Look for the file list in the response with more flexible matching
 	var filesStr string
@@ -316,11 +333,15 @@ Here's the code diff:
 	}
 
 	if filesStr == "" {
+		fmt.Printf("[DEBUG] SelectFilesUsingAI: Failed to extract filesStr from response\n")
 		return nil, fmt.Errorf("AI response did not include file list in expected format. Response was: %s", result)
 	}
 
+	fmt.Printf("[DEBUG] SelectFilesUsingAI: Extracted filesStr: %s\n", filesStr)
+
 	// Parse the file list
 	files := strings.Split(filesStr, ",")
+	fmt.Printf("[DEBUG] SelectFilesUsingAI: Split into %d file entries\n", len(files))
 	for i, f := range files {
 		// Remove any markdown formatting like backticks
 		f = strings.Trim(f, "` \t\n\r")
@@ -335,5 +356,6 @@ Here's the code diff:
 		}
 	}
 
+	fmt.Printf("[DEBUG] SelectFilesUsingAI: Final valid files count=%d: %v\n", len(validFiles), validFiles)
 	return validFiles, nil
 }
