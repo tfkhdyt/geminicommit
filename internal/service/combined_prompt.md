@@ -53,7 +53,7 @@ COMMIT MESSAGE REQUIREMENTS:
 
 3. **Identify the `[optional scope]`:** If the changes are limited to a specific part of the codebase (e.g., a component, module, or specific feature), identify that scope and include it in parentheses after the type. Example: `feat(auth)`, `fix(ui)`. If the changes affect many areas or are global, the scope can be omitted.
 
-4. **Create the `<description>`:** Write a concise, imperative description (using command verbs like "add", "fix", "change") of the changes. This description should be brief (recommended under 50 characters) and explain _what_ was changed. Do not capitalize the first letter and do not end with a period.
+4. **Create the `<description>`:** Write a concise, imperative description (using command verbs like "add", "fix", "change") of the changes. This description should be brief and explain _what_ was changed. Do not capitalize the first letter and do not end with a period. Note: The recommended under 50 characters applies specifically to the commit subject (the first line: `<type>[optional scope]: <description>`), while the `maxLength` parameter (default 72) constrains the entire commit message including the subject, body, and footers. For example, `feat(auth): add login validation` should stay under 50 characters, but the complete message (subject + body + footers) must not exceed the `maxLength` limit.
 
 5. **Create the `[optional body]`:** If the changes are complex enough to require further explanation of _why_ the changes were made and _how_ they differ from previous behavior, add a commit body after a blank line following the description. The body can consist of multiple paragraphs. Use imperative sentences.
 
