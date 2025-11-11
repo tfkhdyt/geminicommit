@@ -219,9 +219,10 @@ func (h *InteractionService) AutoFlow(geminiClient *genai.Client, ctx context.Co
 		return nil, fmt.Errorf("operation cancelled")
 	}
 
-	if action == ActionAutoSelect || action == ActionConfirm {
+	switch action {
+	case ActionAutoSelect, ActionConfirm:
 		data.Files = confirmedFiles
-	} else if action == ActionEdit {
+	case ActionEdit:
 		// If user wants to edit, open file list editor
 		editedFiles, err := h.EditFileList(selectedFiles)
 		if err != nil {

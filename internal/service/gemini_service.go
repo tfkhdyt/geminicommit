@@ -18,6 +18,9 @@ var systemPrompt string
 //go:embed file_selection_prompt.md
 var fileSelectionPrompt string
 
+//go:embed combined_prompt.md
+var combinedPrompt string
+
 type GeminiService struct {
 	systemPrompt string
 }
@@ -245,16 +248,6 @@ func (g *GeminiService) SelectFilesUsingAI(
 	userContext *string,
 	modelName *string,
 ) ([]string, error) {
-	// Debug: Log input diff info
-	diffPreview := diff
-	fmt.Println(diff)
-	fmt.Printf("[DEBUG] SelectFilesUsingAI: Input diff length=%d chars, preview: %s\n", len(diff), diffPreview)
-	if userContext != nil && *userContext != "" {
-		fmt.Printf("[DEBUG] SelectFilesUsingAI: User context provided: %s\n", *userContext)
-	} else {
-		fmt.Printf("[DEBUG] SelectFilesUsingAI: No user context provided\n")
-	}
-
 	prompt := fmt.Sprintf(
 		`%s
 Here's the code diff:
@@ -265,7 +258,6 @@ Here's the code diff:
 
 	enhancedSystemPrompt := fileSelectionPrompt
 
-	fmt.Printf("[DEBUG] SelectFilesUsingAI: Prompt length=%d chars\n", len(prompt))
 	fmt.Println(enhancedSystemPrompt)
 
 	temp := float32(0.2)
@@ -295,12 +287,10 @@ Here's the code diff:
 		},
 	})
 	if err != nil {
-		fmt.Printf("[DEBUG] SelectFilesUsingAI: Error calling AI: %v\n", err)
 		return nil, err
 	}
 
 	result := strings.TrimSpace(resp.Candidates[0].Content.Parts[0].Text)
-	fmt.Printf("[DEBUG] SelectFilesUsingAI: Raw AI response (length=%d): %s\n", len(result), result)
 
 	// Look for the file list in the response with more flexible matching
 	var filesStr string
@@ -333,15 +323,11 @@ Here's the code diff:
 	}
 
 	if filesStr == "" {
-		fmt.Printf("[DEBUG] SelectFilesUsingAI: Failed to extract filesStr from response\n")
 		return nil, fmt.Errorf("AI response did not include file list in expected format. Response was: %s", result)
 	}
 
-	fmt.Printf("[DEBUG] SelectFilesUsingAI: Extracted filesStr: %s\n", filesStr)
-
 	// Parse the file list
 	files := strings.Split(filesStr, ",")
-	fmt.Printf("[DEBUG] SelectFilesUsingAI: Split into %d file entries\n", len(files))
 	for i, f := range files {
 		// Remove any markdown formatting like backticks
 		f = strings.Trim(f, "` \t\n\r")
@@ -356,6 +342,199 @@ Here's the code diff:
 		}
 	}
 
-	fmt.Printf("[DEBUG] SelectFilesUsingAI: Final valid files count=%d: %v\n", len(validFiles), validFiles)
 	return validFiles, nil
+}
+
+// SelectFilesAndGenerateCommit combines file selection and commit message generation in a single AI request
+func (g *GeminiService) SelectFilesAndGenerateCommit(
+	geminiClient *genai.Client,
+	ctx context.Context,
+	diff string,
+	userContext *string,
+	relatedFiles *map[string]string,
+	modelName *string,
+	maxLength *int,
+	language *string,
+	issue *string,
+) ([]string, string, error) {
+	// Format relatedFiles to be dir : files
+	relatedFilesArray := make([]string, 0, len(*relatedFiles))
+	for dir, ls := range *relatedFiles {
+		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s/%s", dir, ls))
+	}
+
+	// Build user prompt with context, diff, and requirements
+	contextStr := ""
+	if userContext != nil && *userContext != "" {
+		contextStr = fmt.Sprintf("Use the following context to understand intent: %s\n\n", *userContext)
+	}
+
+	prompt := fmt.Sprintf(
+		`%sHere's the code diff:
+%s
+
+Neighboring files:
+%s
+
+Requirements:
+- Maximum commit message length: %d characters
+- Language: %s`,
+		contextStr,
+		diff,
+		strings.Join(relatedFilesArray, ", "),
+		*maxLength,
+		*language,
+	)
+
+	if issue != nil && *issue != "" {
+		prompt += fmt.Sprintf("\n- Reference issue: %s", *issue)
+	}
+
+	// Build enhanced system prompt
+	enhancedSystemPrompt := combinedPrompt
+	if *language != "english" {
+		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Generate the commit message in %s language.", *language)
+	}
+	enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Keep the commit message under %d characters.", *maxLength)
+	if issue != nil && *issue != "" {
+		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Reference issue %s in the commit message.", *issue)
+	}
+
+	temp := float32(0.2)
+	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(prompt), &genai.GenerateContentConfig{
+		Temperature: &temp,
+		SafetySettings: []*genai.SafetySetting{
+			{
+				Category:  genai.HarmCategoryHarassment,
+				Threshold: genai.HarmBlockThresholdBlockNone,
+			},
+			{
+				Category:  genai.HarmCategoryHateSpeech,
+				Threshold: genai.HarmBlockThresholdBlockNone,
+			},
+			{
+				Category:  genai.HarmCategoryDangerousContent,
+				Threshold: genai.HarmBlockThresholdBlockNone,
+			},
+			{
+				Category:  genai.HarmCategorySexuallyExplicit,
+				Threshold: genai.HarmBlockThresholdBlockNone,
+			},
+		},
+		SystemInstruction: &genai.Content{
+			Role:  genai.RoleModel,
+			Parts: []*genai.Part{{Text: enhancedSystemPrompt}},
+		},
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	result := strings.TrimSpace(resp.Candidates[0].Content.Parts[0].Text)
+
+	// Parse files from response
+	var filesStr string
+	lines := strings.Split(result, "\n")
+	foundFilesSection := false
+	var filesLines []string
+
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+
+		// Check if this line starts the FILES section
+		if strings.HasPrefix(trimmedLine, "FILES:") {
+			foundFilesSection = true
+			// Extract the part after "FILES:"
+			afterPrefix := strings.TrimSpace(strings.TrimPrefix(trimmedLine, "FILES:"))
+			if afterPrefix != "" {
+				filesLines = append(filesLines, afterPrefix)
+			}
+			continue
+		}
+
+		// If we're in the files section, collect lines until we hit COMMIT_MESSAGE
+		if foundFilesSection {
+			// Stop if we hit COMMIT_MESSAGE section
+			if strings.HasPrefix(trimmedLine, "COMMIT_MESSAGE:") {
+				break
+			}
+			filesLines = append(filesLines, line)
+		}
+	}
+
+	if len(filesLines) > 0 {
+		filesStr = strings.TrimSpace(strings.Join(filesLines, " "))
+	} else {
+		// Fallback: try to find files using the old method
+		if after, ok := strings.CutPrefix(result, "FILES:"); ok {
+			// Stop at COMMIT_MESSAGE if present
+			if idx := strings.Index(after, "COMMIT_MESSAGE:"); idx != -1 {
+				filesStr = strings.TrimSpace(after[:idx])
+			} else {
+				filesStr = strings.TrimSpace(after)
+			}
+		}
+	}
+
+	if filesStr == "" {
+		return nil, "", fmt.Errorf("AI response did not include file list in expected format. Response was: %s", result)
+	}
+
+	// Parse the file list
+	files := strings.Split(filesStr, ",")
+	for i, f := range files {
+		f = strings.Trim(f, "` \t\n\r")
+		files[i] = strings.TrimSpace(f)
+	}
+
+	// Filter out empty strings
+	var validFiles []string
+	for _, f := range files {
+		if f != "" {
+			validFiles = append(validFiles, f)
+		}
+	}
+
+	// Parse commit message from response
+	var commitMessage string
+	foundCommitSection := false
+	var commitLines []string
+
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+
+		// Check if this line starts the COMMIT_MESSAGE section
+		if strings.HasPrefix(trimmedLine, "COMMIT_MESSAGE:") {
+			foundCommitSection = true
+			// Extract the part after "COMMIT_MESSAGE:"
+			afterPrefix := strings.TrimSpace(strings.TrimPrefix(trimmedLine, "COMMIT_MESSAGE:"))
+			if afterPrefix != "" {
+				commitLines = append(commitLines, afterPrefix)
+			}
+			continue
+		}
+
+		// If we're in the commit message section, collect lines
+		if foundCommitSection {
+			// Stop if we hit another section marker (like FILES:)
+			if strings.HasPrefix(trimmedLine, "FILES:") {
+				break
+			}
+			// Collect the line (preserve empty lines for commit message formatting)
+			commitLines = append(commitLines, line)
+		}
+	}
+
+	if len(commitLines) > 0 {
+		commitMessage = strings.Join(commitLines, "\n")
+		// Remove any markdown code blocks
+		commitMessage = strings.ReplaceAll(commitMessage, "```", "")
+		commitMessage = strings.TrimSpace(commitMessage)
+	}
+
+	if commitMessage == "" {
+		return nil, "", fmt.Errorf("AI response did not include commit message in expected format. Response was: %s", result)
+	}
+
+	return validFiles, commitMessage, nil
 }

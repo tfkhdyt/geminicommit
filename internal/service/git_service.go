@@ -49,7 +49,7 @@ func (g *GitService) VerifyGitRepository() error {
 }
 
 func (g *GitService) StageAll() error {
-	if err := exec.Command("git", "add", "-u").Run(); err != nil {
+	if err := exec.Command("git", "add", "--all").Run(); err != nil {
 		return fmt.Errorf("failed to update tracked files. %v", err)
 	}
 
@@ -125,6 +125,124 @@ func (g *GitService) GetAllChanges() ([]string, error) {
 	return files, nil
 }
 
+// GetAllChangesWithStatus returns all changed files along with their git status
+func (g *GitService) GetAllChangesWithStatus() ([]string, map[string]string, error) {
+	// Get all changed files (including untracked, modified, deleted, etc.)
+	cmd := exec.Command("git", "status", "--porcelain", "--untracked-files=all")
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println("Error getting all changes:", err)
+		return nil, nil, err
+	}
+
+	outputStr := strings.TrimSpace(string(output))
+	if outputStr == "" {
+		return []string{}, map[string]string{}, nil
+	}
+
+	// Parse the git status output to get filenames and their status
+	lines := strings.Split(outputStr, "\n")
+	var files []string
+	fileStatus := make(map[string]string)
+
+	for _, line := range lines {
+		if line != "" {
+			// The git status --porcelain format has status followed by space and filename
+			// Examples: "M file", "?? file", "MM file", " A file"
+			line = strings.TrimSpace(line)
+			if len(line) > 2 { // At least "X " + filename
+				// Extract status (first 2 characters)
+				status := line[:2]
+				// Find the first space after the status and extract filename
+				spaceIndex := strings.Index(line, " ")
+				if spaceIndex != -1 && spaceIndex < len(line)-1 {
+					// Extract filename after the first space
+					filename := strings.TrimSpace(line[spaceIndex+1:])
+					if filename != "" {
+						files = append(files, filename)
+						fileStatus[filename] = status
+					}
+				} else if len(line) > 2 {
+					// Fallback: if no space found, take everything after the first 3 characters
+					filename := strings.TrimSpace(line[2:])
+					if filename != "" {
+						files = append(files, filename)
+						fileStatus[filename] = status
+					}
+				}
+			}
+		}
+	}
+
+	return files, fileStatus, nil
+}
+
+// GetDiffWithUntracked generates a diff that includes both tracked and untracked files
+func (g *GitService) GetDiffWithUntracked() (string, error) {
+	var diffParts []string
+
+	// Get diff for tracked files
+	diffCmd := exec.Command("git", "diff", "--diff-algorithm=minimal")
+	diffOutput, err := diffCmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get tracked files diff: %v", err)
+	}
+	trackedDiff := strings.TrimSpace(string(diffOutput))
+	if trackedDiff != "" {
+		diffParts = append(diffParts, trackedDiff)
+	}
+
+	// Get untracked files and generate diff for each
+	files, fileStatus, err := g.GetAllChangesWithStatus()
+	if err != nil {
+		return "", fmt.Errorf("failed to get file status: %v", err)
+	}
+
+	for _, file := range files {
+		status := fileStatus[file]
+		// "??" means untracked file
+		if status == "??" {
+			// Check if file exists and is readable
+			if _, err := os.Stat(file); os.IsNotExist(err) {
+				continue
+			}
+
+			// Generate diff for untracked file using git diff --no-index
+			// This shows the file as a new file (all lines added)
+			diffCmd := exec.Command("git", "diff", "--no-index", "--no-color", "/dev/null", file)
+			diffOutput, err := diffCmd.Output()
+			if err != nil {
+				// If git diff fails (e.g., binary file), try to read and format as new file
+				content, readErr := os.ReadFile(file)
+				if readErr != nil {
+					continue // Skip files we can't read
+				}
+				// Format as a simple diff showing new file
+				lines := strings.Split(string(content), "\n")
+				var diffLines []string
+				diffLines = append(diffLines, fmt.Sprintf("diff --git a/dev/null b/%s", file))
+				diffLines = append(diffLines, "new file mode 100644")
+				diffLines = append(diffLines, "index 0000000..0000000")
+				diffLines = append(diffLines, "--- /dev/null")
+				diffLines = append(diffLines, fmt.Sprintf("+++ b/%s", file))
+				diffLines = append(diffLines, fmt.Sprintf("@@ -0,0 +1,%d @@", len(lines)))
+				for _, line := range lines {
+					diffLines = append(diffLines, "+"+line)
+				}
+				untrackedDiff := strings.Join(diffLines, "\n")
+				diffParts = append(diffParts, untrackedDiff)
+			} else {
+				untrackedDiff := strings.TrimSpace(string(diffOutput))
+				if untrackedDiff != "" {
+					diffParts = append(diffParts, untrackedDiff)
+				}
+			}
+		}
+	}
+
+	return strings.Join(diffParts, "\n\n"), nil
+}
+
 func (g *GitService) CommitChanges(message string, quiet *bool) error {
 	cmd := exec.Command("git", "commit", "-m", message)
 	if !*quiet {
@@ -190,19 +308,24 @@ func (g *GitService) DetectIssueFromBranch() (string, error) {
 
 	// Common patterns for issue detection in branch names
 	patterns := []string{
-		`([A-Z]+-\d+)`, // GEN-123, ELI-1220
-		`#(\d+)`,       // #123
-		`(\d+)-`,       // 123-feature
-		`-(\d+)-`,      // feature-123-description
-		`issue-(\d+)`,  // issue-123
-		`fix-(\d+)`,    // fix-123
-		`feat-(\d+)`,   // feat-123
-		`bug-(\d+)`,    // bug-123
+		`(?i)([A-Z]+-\d+)`, // GEN-123, ELI-1220 (case-insensitive)
+		`#(\d+)`,           // #123
+		`(\d+)-`,           // 123-feature
+		`-(\d+)-`,          // feature-123-description
+		`issue-(\d+)`,      // issue-123
+		`fix-(\d+)`,        // fix-123
+		`feat-(\d+)`,       // feat-123
+		`bug-(\d+)`,        // bug-123
 	}
 
-	for _, pattern := range patterns {
+	for i, pattern := range patterns {
 		if matches := regexp.MustCompile(pattern).FindStringSubmatch(branchName); len(matches) > 1 {
-			return matches[1], nil
+			result := matches[1]
+			// Convert to uppercase for the first pattern (issue identifiers like GEN-123)
+			if i == 0 {
+				result = strings.ToUpper(result)
+			}
+			return result, nil
 		}
 	}
 
@@ -255,9 +378,8 @@ func (g *GitService) DetectAndPrepareChanges(opts *CommitOptions) (*PreCommitDat
 					return
 				}
 
-				// Get full diff of all changes
-				diffCmd := exec.Command("git", "diff", "--diff-algorithm=minimal")
-				diffOutput, err := diffCmd.Output()
+				// Get full diff of all changes including untracked files
+				diff, err = g.GetDiffWithUntracked()
 				if err != nil {
 					filesChan <- []string{}
 					diffChan <- ""
@@ -265,7 +387,6 @@ func (g *GitService) DetectAndPrepareChanges(opts *CommitOptions) (*PreCommitDat
 				}
 
 				files = allChanges
-				diff = string(diffOutput)
 			} else {
 				// For normal flow, get only staged changes
 				files, diff, err = g.DetectDiffChanges()
@@ -297,7 +418,7 @@ func (g *GitService) DetectAndPrepareChanges(opts *CommitOptions) (*PreCommitDat
 		}
 	}
 
-	relatedFiles := g.getRelatedFiles(files, opts.Quiet)
+	relatedFiles := g.getRelatedFiles(files)
 
 	// Auto-detect issue number from branch name if not provided
 	issue := *opts.Issue
@@ -320,7 +441,7 @@ func (g *GitService) DetectAndPrepareChanges(opts *CommitOptions) (*PreCommitDat
 }
 
 // getRelatedFiles discovers related files in the same directories
-func (g *GitService) getRelatedFiles(files []string, quiet *bool) map[string]string {
+func (g *GitService) getRelatedFiles(files []string) map[string]string {
 	relatedFiles := make(map[string]string)
 	visitedDirs := make(map[string]bool)
 

@@ -129,13 +129,15 @@ func (r *RootUsecase) RootCommand(
 	}
 
 	// Check if auto-select flag is set and handle accordingly
+	var initialCommitMessage string
 	if *opts.AutoSelect {
-		// Auto flow: Select files with AI, show to user, allow edit/cancel
-		selectedData, err := r.handleAutoFlow(client, ctx, data, opts)
+		// Auto flow: Select files with AI and generate commit message in one request
+		autoResult, err := r.handleAutoFlow(client, ctx, data, opts)
 		if err != nil {
 			return err
 		}
-		data = selectedData // Update data with confirmed files
+		data = autoResult.Data // Update data with confirmed files
+		initialCommitMessage = autoResult.CommitMessage
 
 		// In auto mode, we need to stage only the selected files for the commit
 		// First, unstage everything
@@ -150,10 +152,15 @@ func (r *RootUsecase) RootCommand(
 	}
 
 	// Main generation loop
+	message := initialCommitMessage
 	for {
-		message, err := r.geminiService.GenerateCommitMessage(client, ctx, data, opts)
-		if err != nil {
-			return err
+		// If we don't have a message yet (non-auto mode) or user wants to regenerate, generate one
+		if message == "" {
+			var err error
+			message, err = r.geminiService.GenerateCommitMessage(client, ctx, data, opts)
+			if err != nil {
+				return err
+			}
 		}
 
 		selectedAction, finalMessage, err := r.interactionService.HandleUserAction(message, opts)
@@ -168,8 +175,10 @@ func (r *RootUsecase) RootCommand(
 			}
 			return nil
 		case service.ActionRegenerate:
+			message = "" // Clear message to regenerate
 			continue
 		case service.ActionEditContext:
+			message = "" // Clear message to regenerate with new context
 			continue
 		case service.ActionCancel:
 			color.New(color.FgRed).Println("Commit cancelled")
@@ -178,30 +187,57 @@ func (r *RootUsecase) RootCommand(
 	}
 }
 
+// AutoFlowResult contains both selected files and generated commit message
+type AutoFlowResult struct {
+	Data          *service.PreCommitData
+	CommitMessage string
+}
+
 // handleAutoFlow implements the complete auto flow as per the flowchart
 func (r *RootUsecase) handleAutoFlow(
 	client *genai.Client,
 	ctx context.Context,
 	data *service.PreCommitData,
 	opts *service.CommitOptions,
-) (*service.PreCommitData, error) {
+) (*AutoFlowResult, error) {
 	// Step 1: Detect all changes in working directory (already done in calling function)
-	// Step 2: Send diff to AI for file selection
+	// Step 2: Send diff to AI for file selection AND commit message generation
 	var selectedFiles []string
+	var commitMessage string
 	var err error
 
 	if !*opts.Quiet {
 		err = spinner.New().
 			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *opts.Model)).
 			Action(func() {
-				selectedFiles, err = r.geminiService.SelectFilesUsingAI(client, ctx, data.Diff, opts.UserContext, opts.Model)
+				selectedFiles, commitMessage, err = r.geminiService.SelectFilesAndGenerateCommit(
+					client,
+					ctx,
+					data.Diff,
+					opts.UserContext,
+					&data.RelatedFiles,
+					opts.Model,
+					opts.MaxLength,
+					opts.Language,
+					opts.Issue,
+				)
 			}).
 			Run()
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		selectedFiles, err = r.geminiService.SelectFilesUsingAI(client, ctx, data.Diff, opts.UserContext, opts.Model)
+		selectedFiles, commitMessage, err = r.geminiService.SelectFilesAndGenerateCommit(
+			client,
+			ctx,
+			data.Diff,
+			opts.UserContext,
+			&data.RelatedFiles,
+			opts.Model,
+			opts.MaxLength,
+			opts.Language,
+			opts.Issue,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -226,12 +262,18 @@ func (r *RootUsecase) handleAutoFlow(
 		// Update data with edited files
 		newData := *data
 		newData.Files = editedFiles
-		return &newData, nil
+		return &AutoFlowResult{
+			Data:          &newData,
+			CommitMessage: commitMessage,
+		}, nil
 	case service.ActionConfirm, service.ActionAutoSelect:
 		// Proceed with selected files
 		newData := *data
 		newData.Files = confirmedFiles
-		return &newData, nil
+		return &AutoFlowResult{
+			Data:          &newData,
+			CommitMessage: commitMessage,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown action: %v", action)
 	}
