@@ -80,49 +80,8 @@ func (g *GitService) DetectDiffChanges() ([]string, string, error) {
 }
 
 func (g *GitService) GetAllChanges() ([]string, error) {
-	// Get all changed files (including untracked, modified, deleted, etc.)
-	cmd := exec.Command("git", "status", "--porcelain", "--untracked-files=all")
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Println("Error getting all changes:", err)
-		return nil, err
-	}
-
-	outputStr := strings.TrimSpace(string(output))
-	if outputStr == "" {
-		return []string{}, nil
-	}
-
-	// Parse the git status output to get just the filenames
-	lines := strings.Split(outputStr, "\n")
-	var files []string
-	for _, line := range lines {
-		if line != "" {
-			// The git status --porcelain format has status followed by space and filename
-			// Examples: "M file", "?? file", "MM file", " A file"
-			line = strings.TrimSpace(line)
-			if len(line) > 2 { // At least "X " + filename
-				// Find the first space after the status and extract filename
-				spaceIndex := strings.Index(line, " ")
-				if spaceIndex != -1 && spaceIndex < len(line)-1 {
-					// Extract filename after the first space
-					filename := strings.TrimSpace(line[spaceIndex+1:])
-					if filename != "" {
-						files = append(files, filename)
-					}
-				} else if len(line) > 2 {
-					// Fallback: if no space found, take everything after the first 3 characters
-					// This handles edge cases, though they shouldn't normally occur
-					filename := strings.TrimSpace(line[2:])
-					if filename != "" {
-						files = append(files, filename)
-					}
-				}
-			}
-		}
-	}
-
-	return files, nil
+	files, _, err := g.GetAllChangesWithStatus()
+	return files, err
 }
 
 // GetAllChangesWithStatus returns all changed files along with their git status
@@ -135,6 +94,11 @@ func (g *GitService) GetAllChangesWithStatus() ([]string, map[string]string, err
 		return nil, nil, err
 	}
 
+	return g.parseGitPorcelain(output)
+}
+
+// parseGitPorcelain parses git status --porcelain output and returns files and their status
+func (g *GitService) parseGitPorcelain(output []byte) ([]string, map[string]string, error) {
 	outputStr := strings.TrimSpace(string(output))
 	if outputStr == "" {
 		return []string{}, map[string]string{}, nil
@@ -209,7 +173,7 @@ func (g *GitService) GetDiffWithUntracked() (string, error) {
 
 			// Generate diff for untracked file using git diff --no-index
 			// This shows the file as a new file (all lines added)
-			diffCmd := exec.Command("git", "diff", "--no-index", "--no-color", "/dev/null", file)
+			diffCmd := exec.Command("git", "diff", "--no-index", "--no-color", os.DevNull, file)
 			diffOutput, err := diffCmd.Output()
 			if err != nil {
 				// If git diff fails (e.g., binary file), try to read and format as new file
@@ -220,10 +184,10 @@ func (g *GitService) GetDiffWithUntracked() (string, error) {
 				// Format as a simple diff showing new file
 				lines := strings.Split(string(content), "\n")
 				var diffLines []string
-				diffLines = append(diffLines, fmt.Sprintf("diff --git a/dev/null b/%s", file))
+				diffLines = append(diffLines, fmt.Sprintf("diff --git a/%s b/%s", os.DevNull, file))
 				diffLines = append(diffLines, "new file mode 100644")
 				diffLines = append(diffLines, "index 0000000..0000000")
-				diffLines = append(diffLines, "--- /dev/null")
+				diffLines = append(diffLines, fmt.Sprintf("--- %s", os.DevNull))
 				diffLines = append(diffLines, fmt.Sprintf("+++ b/%s", file))
 				diffLines = append(diffLines, fmt.Sprintf("@@ -0,0 +1,%d @@", len(lines)))
 				for _, line := range lines {
