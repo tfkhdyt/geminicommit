@@ -50,6 +50,16 @@ type PreCommitData struct {
 	Issue        string
 }
 
+// SelectFilesAndGenerateCommitOptions contains optional parameters for SelectFilesAndGenerateCommit
+type SelectFilesAndGenerateCommitOptions struct {
+	UserContext  *string
+	RelatedFiles *map[string]string
+	ModelName    *string
+	MaxLength    *int
+	Language     *string
+	Issue        *string
+}
+
 var (
 	geminiService *GeminiService
 	geminiOnce    sync.Once
@@ -169,6 +179,16 @@ Requirements:
 	return prompt, nil
 }
 
+// formatRelatedFiles formats a map of directory to files into a slice of strings
+// in the format "dir/file"
+func formatRelatedFiles(dirToFiles map[string]string) []string {
+	relatedFilesArray := make([]string, 0, len(dirToFiles))
+	for dir, ls := range dirToFiles {
+		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s/%s", dir, ls))
+	}
+	return relatedFilesArray
+}
+
 func (g *GeminiService) AnalyzeChanges(
 	geminiClient *genai.Client,
 	ctx context.Context,
@@ -182,10 +202,7 @@ func (g *GeminiService) AnalyzeChanges(
 	// lastCommits []string,
 ) (string, error) {
 	// format relatedFiles to be dir : files
-	relatedFilesArray := make([]string, 0, len(*relatedFiles))
-	for dir, ls := range *relatedFiles {
-		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s/%s", dir, ls))
-	}
+	relatedFilesArray := formatRelatedFiles(*relatedFiles)
 
 	userPrompt, err := g.GetUserPrompt(userContext, diff, relatedFilesArray, maxLength, language, issue)
 	if err != nil {
@@ -348,34 +365,32 @@ func (g *GeminiService) SelectFilesAndGenerateCommit(
 	geminiClient *genai.Client,
 	ctx context.Context,
 	diff string,
-	userContext *string,
-	relatedFiles *map[string]string,
-	modelName *string,
-	maxLength *int,
-	language *string,
-	issue *string,
+	opts *SelectFilesAndGenerateCommitOptions,
 ) ([]string, string, error) {
 	// Validate required parameters
-	if modelName == nil {
-		return nil, "", fmt.Errorf("modelName cannot be nil")
+	if opts == nil {
+		return nil, "", fmt.Errorf("options cannot be nil")
 	}
-	if maxLength == nil {
-		return nil, "", fmt.Errorf("maxLength cannot be nil")
+	if opts.ModelName == nil {
+		return nil, "", fmt.Errorf("ModelName cannot be nil")
 	}
-	if language == nil {
-		return nil, "", fmt.Errorf("language cannot be nil")
+	if opts.MaxLength == nil {
+		return nil, "", fmt.Errorf("MaxLength cannot be nil")
+	}
+	if opts.Language == nil {
+		return nil, "", fmt.Errorf("Language cannot be nil")
+	}
+	if opts.RelatedFiles == nil {
+		return nil, "", fmt.Errorf("RelatedFiles cannot be nil")
 	}
 
 	// Format relatedFiles to be dir : files
-	relatedFilesArray := make([]string, 0, len(*relatedFiles))
-	for dir, ls := range *relatedFiles {
-		relatedFilesArray = append(relatedFilesArray, fmt.Sprintf("%s/%s", dir, ls))
-	}
+	relatedFilesArray := formatRelatedFiles(*opts.RelatedFiles)
 
 	// Build user prompt with context, diff, and requirements
 	contextStr := ""
-	if userContext != nil && *userContext != "" {
-		contextStr = fmt.Sprintf("Use the following context to understand intent: %s\n\n", *userContext)
+	if opts.UserContext != nil && *opts.UserContext != "" {
+		contextStr = fmt.Sprintf("Use the following context to understand intent: %s\n\n", *opts.UserContext)
 	}
 
 	prompt := fmt.Sprintf(
@@ -391,26 +406,26 @@ Requirements:
 		contextStr,
 		diff,
 		strings.Join(relatedFilesArray, ", "),
-		*maxLength,
-		*language,
+		*opts.MaxLength,
+		*opts.Language,
 	)
 
-	if issue != nil && *issue != "" {
-		prompt += fmt.Sprintf("\n- Reference issue: %s", *issue)
+	if opts.Issue != nil && *opts.Issue != "" {
+		prompt += fmt.Sprintf("\n- Reference issue: %s", *opts.Issue)
 	}
 
 	// Build enhanced system prompt
 	enhancedSystemPrompt := combinedPrompt
-	if *language != "english" {
-		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Generate the commit message in %s language.", *language)
+	if *opts.Language != "english" {
+		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Generate the commit message in %s language.", *opts.Language)
 	}
-	enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Keep the commit message under %d characters.", *maxLength)
-	if issue != nil && *issue != "" {
-		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Reference issue %s in the commit message.", *issue)
+	enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Keep the commit message under %d characters.", *opts.MaxLength)
+	if opts.Issue != nil && *opts.Issue != "" {
+		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Reference issue %s in the commit message.", *opts.Issue)
 	}
 
 	temp := float32(0.2)
-	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(prompt), &genai.GenerateContentConfig{
+	resp, err := geminiClient.Models.GenerateContent(ctx, *opts.ModelName, genai.Text(prompt), &genai.GenerateContentConfig{
 		Temperature: &temp,
 		SafetySettings: []*genai.SafetySetting{
 			{
@@ -437,6 +452,26 @@ Requirements:
 	})
 	if err != nil {
 		return nil, "", err
+	}
+
+	// Defensive checks to prevent panics
+	if resp == nil {
+		return nil, "", fmt.Errorf("API response is nil")
+	}
+	if len(resp.Candidates) == 0 {
+		return nil, "", fmt.Errorf("API response contains no candidates")
+	}
+	if resp.Candidates[0].Content == nil {
+		return nil, "", fmt.Errorf("API response candidate content is nil")
+	}
+	if len(resp.Candidates[0].Content.Parts) == 0 {
+		return nil, "", fmt.Errorf("API response candidate content contains no parts")
+	}
+	if resp.Candidates[0].Content.Parts[0] == nil {
+		return nil, "", fmt.Errorf("API response candidate part is nil")
+	}
+	if resp.Candidates[0].Content.Parts[0].Text == "" {
+		return nil, "", fmt.Errorf("API response candidate part text is empty")
 	}
 
 	result := strings.TrimSpace(resp.Candidates[0].Content.Parts[0].Text)

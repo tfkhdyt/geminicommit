@@ -202,6 +202,31 @@ func (r *RootUsecase) handleAutoFlow(
 ) (*AutoFlowResult, error) {
 	// Step 1: Detect all changes in working directory (already done in calling function)
 	// Step 2: Send diff to AI for file selection AND commit message generation
+	// Extract common logic into a closure that captures client, ctx, data, and opts
+	selectFilesAndGenerateCommit := func() ([]string, string, error) {
+		selectOpts := &service.SelectFilesAndGenerateCommitOptions{
+			UserContext:  opts.UserContext,
+			RelatedFiles: &data.RelatedFiles,
+			ModelName:    opts.Model,
+			MaxLength:    opts.MaxLength,
+			Language:     opts.Language,
+			Issue:        opts.Issue,
+		}
+		selectedFiles, commitMessage, err := r.geminiService.SelectFilesAndGenerateCommit(
+			client,
+			ctx,
+			data.Diff,
+			selectOpts,
+		)
+		if err != nil {
+			return nil, "", err
+		}
+		if commitMessage == "" {
+			return nil, "", fmt.Errorf("AI returned an empty commit message")
+		}
+		return selectedFiles, commitMessage, nil
+	}
+
 	var selectedFiles []string
 	var commitMessage string
 	var err error
@@ -210,42 +235,16 @@ func (r *RootUsecase) handleAutoFlow(
 		err = spinner.New().
 			Title(fmt.Sprintf("AI is analyzing your changes. (Model: %s)", *opts.Model)).
 			Action(func() {
-				selectedFiles, commitMessage, err = r.geminiService.SelectFilesAndGenerateCommit(
-					client,
-					ctx,
-					data.Diff,
-					opts.UserContext,
-					&data.RelatedFiles,
-					opts.Model,
-					opts.MaxLength,
-					opts.Language,
-					opts.Issue,
-				)
+				selectedFiles, commitMessage, err = selectFilesAndGenerateCommit()
 			}).
 			Run()
 		if err != nil {
 			return nil, err
 		}
-		if commitMessage == "" {
-			return nil, fmt.Errorf("AI returned an empty commit message")
-		}
 	} else {
-		selectedFiles, commitMessage, err = r.geminiService.SelectFilesAndGenerateCommit(
-			client,
-			ctx,
-			data.Diff,
-			opts.UserContext,
-			&data.RelatedFiles,
-			opts.Model,
-			opts.MaxLength,
-			opts.Language,
-			opts.Issue,
-		)
+		selectedFiles, commitMessage, err = selectFilesAndGenerateCommit()
 		if err != nil {
 			return nil, err
-		}
-		if commitMessage == "" {
-			return nil, fmt.Errorf("AI returned an empty commit message")
 		}
 	}
 
