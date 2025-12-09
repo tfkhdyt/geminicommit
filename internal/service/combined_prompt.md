@@ -60,9 +60,11 @@ COMMIT MESSAGE REQUIREMENTS:
 6. **Identify the `[optional footer(s)]`:**
 
    - **`BREAKING CHANGE`:** If the changes introduce a backward-incompatible change (breaking change), add a footer starting with `BREAKING CHANGE: ` followed by a description of _what_ changed and _how_ to migrate. You can also signal a breaking change by adding a `!` after the type or scope (e.g., `feat!:`, `feat(api)!:`). If `!` is used, the `BREAKING CHANGE:` footer is still highly recommended for detailed explanation.
-   - **Issue References:** If the commit fixes or relates to a specific issue in an issue tracking system (e.g., GitHub Issues, Jira), add a footer referencing the issue, such as `Ref: #<issue-number>`.
+   - **Issue References:** If the commit fixes or relates to a specific issue in an issue tracking system (e.g., GitHub Issues, Jira), add a footer referencing the issue, such as `Ref: #<issue-number>`. When an issue reference is provided in the requirements, ALWAYS include it in the footer of the commit message.
 
 7. **Final Format:** Assemble the identified elements into the correct Conventional Commits format. Ensure there is a blank line between the description and the body (if present), and between the body and the footer(s) (if present).
+
+**IMPORTANT REMINDER:** If an issue reference is provided in the requirements section, you MUST include it in the footer of the commit message. Do not omit it.
 
 OUTPUT FORMAT:
 

@@ -210,7 +210,7 @@ func (r *RootUsecase) handleAutoFlow(
 			ModelName:    opts.Model,
 			MaxLength:    opts.MaxLength,
 			Language:     opts.Language,
-			Issue:        opts.Issue,
+			Issue:        &data.Issue,
 		}
 		selectedFiles, commitMessage, err := r.geminiService.SelectFilesAndGenerateCommit(
 			client,
