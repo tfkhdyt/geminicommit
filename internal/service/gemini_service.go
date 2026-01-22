@@ -12,6 +12,11 @@ import (
 	"google.golang.org/genai"
 )
 
+const (
+	Gemini3ProPreview   = "gemini-3-pro-preview"
+	Gemini3FlashPreview = "gemini-3-flash-preview"
+)
+
 //go:embed system_prompt.md
 var systemPrompt string
 
@@ -73,6 +78,13 @@ func NewGeminiService() *GeminiService {
 	})
 
 	return geminiService
+}
+
+func (g *GeminiService) getModelTemperature(modelName string) float32 {
+	if modelName == Gemini3ProPreview || modelName == Gemini3FlashPreview {
+		return 1.0
+	}
+	return 0.2
 }
 
 // GenerateCommitMessage creates a commit message using AI analysis with UI feedback
@@ -219,7 +231,7 @@ func (g *GeminiService) AnalyzeChanges(
 		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Reference issue %s in the commit message.", *issue)
 	}
 
-	temp := float32(0.2)
+	temp := g.getModelTemperature(*modelName)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(userPrompt), &genai.GenerateContentConfig{
 		Temperature: &temp,
 		SafetySettings: []*genai.SafetySetting{
@@ -275,7 +287,7 @@ Here's the code diff:
 
 	enhancedSystemPrompt := fileSelectionPrompt
 
-	temp := float32(0.2)
+	temp := g.getModelTemperature(*modelName)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(prompt), &genai.GenerateContentConfig{
 		Temperature: &temp,
 		SafetySettings: []*genai.SafetySetting{
@@ -424,7 +436,7 @@ Requirements:
 		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Reference issue %s in the commit message.", *opts.Issue)
 	}
 
-	temp := float32(0.2)
+	temp := g.getModelTemperature(*opts.ModelName)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *opts.ModelName, genai.Text(prompt), &genai.GenerateContentConfig{
 		Temperature: &temp,
 		SafetySettings: []*genai.SafetySetting{
