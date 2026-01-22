@@ -41,7 +41,7 @@ var RootCmd = &cobra.Command{
 	Use:     "gmc",
 	Short:   "CLI that writes your git commit messages for you with Google Gemini AI",
 	Long:    "CLI that writes your git commit messages for you with Google Gemini AI",
-	Version: "0.6.1",
+	Version: "0.7.0",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Apply config values to variables if flags are not explicitly set
 		applyConfigDefaults(cmd)

@@ -232,37 +232,79 @@ func (g *GeminiService) AnalyzeChanges(
 	}
 
 	temp := g.getModelTemperature(*modelName)
-	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(userPrompt), &genai.GenerateContentConfig{
-		Temperature: &temp,
-		SafetySettings: []*genai.SafetySetting{
-			{
-				Category:  genai.HarmCategoryHarassment,
-				Threshold: genai.HarmBlockThresholdBlockNone,
+	var result string
+	for attempt := range 2 {
+		resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(userPrompt), &genai.GenerateContentConfig{
+			Temperature: &temp,
+			SafetySettings: []*genai.SafetySetting{
+				{
+					Category:  genai.HarmCategoryHarassment,
+					Threshold: genai.HarmBlockThresholdBlockNone,
+				},
+				{
+					Category:  genai.HarmCategoryHateSpeech,
+					Threshold: genai.HarmBlockThresholdBlockNone,
+				},
+				{
+					Category:  genai.HarmCategoryDangerousContent,
+					Threshold: genai.HarmBlockThresholdBlockNone,
+				},
+				{
+					Category:  genai.HarmCategorySexuallyExplicit,
+					Threshold: genai.HarmBlockThresholdBlockNone,
+				},
 			},
-			{
-				Category:  genai.HarmCategoryHateSpeech,
-				Threshold: genai.HarmBlockThresholdBlockNone,
+			SystemInstruction: &genai.Content{
+				Role:  genai.RoleUser,
+				Parts: []*genai.Part{{Text: enhancedSystemPrompt}},
 			},
-			{
-				Category:  genai.HarmCategoryDangerousContent,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-			{
-				Category:  genai.HarmCategorySexuallyExplicit,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-		},
-		SystemInstruction: &genai.Content{
-			Role:  genai.RoleModel,
-			Parts: []*genai.Part{{Text: enhancedSystemPrompt}},
-		},
-	})
-	if err != nil {
-		fmt.Println("Error:", err)
-		return "", nil
+		})
+		if err != nil {
+			if attempt == 1 {
+				return "", err
+			}
+			continue
+		}
+		if resp == nil {
+			if attempt == 1 {
+				return "", fmt.Errorf("empty response from model")
+			}
+			continue
+		}
+		if len(resp.Candidates) == 0 {
+			if attempt == 1 {
+				return "", fmt.Errorf("empty response candidates from model")
+			}
+			continue
+		}
+		if resp.Candidates[0].Content == nil {
+			if attempt == 1 {
+				return "", fmt.Errorf("empty response content from model")
+			}
+			continue
+		}
+		if len(resp.Candidates[0].Content.Parts) == 0 {
+			if attempt == 1 {
+				return "", fmt.Errorf("empty response parts from model")
+			}
+			continue
+		}
+		if resp.Candidates[0].Content.Parts[0] == nil {
+			if attempt == 1 {
+				return "", fmt.Errorf("empty response part from model")
+			}
+			continue
+		}
+		result = resp.Candidates[0].Content.Parts[0].Text
+		if strings.TrimSpace(result) == "" {
+			if attempt == 1 {
+				return "", fmt.Errorf("empty response text from model")
+			}
+			continue
+		}
+		break
 	}
 
-	result := resp.Candidates[0].Content.Parts[0].Text
 	result = strings.ReplaceAll(result, "```", "")
 	result = strings.TrimSpace(result)
 
