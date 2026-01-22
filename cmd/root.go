@@ -42,6 +42,10 @@ var RootCmd = &cobra.Command{
 	Short:   "CLI that writes your git commit messages for you with Google Gemini AI",
 	Long:    "CLI that writes your git commit messages for you with Google Gemini AI",
 	Version: "0.6.1",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Apply config values to variables if flags are not explicitly set
+		applyConfigDefaults(cmd)
+	},
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: rootHandler.RootCommand(
@@ -110,6 +114,68 @@ func init() {
 		BoolVarP(&noVerify, "no-verify", "", noVerify, "skip git commit-msg hook verification")
 	RootCmd.Flags().
 		StringVarP(&customBaseUrl, "baseurl", "", service.DefaultBaseUrl, "specify custom url for Google Gemini Pro API")
+
+	// Bind flags to viper config keys
+	// [api]
+	viper.BindPFlag("api.model", RootCmd.Flags().Lookup("model"))
+	viper.BindPFlag("api.baseurl", RootCmd.Flags().Lookup("baseurl"))
+	// [commit]
+	viper.BindPFlag("commit.language", RootCmd.Flags().Lookup("language"))
+	viper.BindPFlag("commit.max_length", RootCmd.Flags().Lookup("max-length"))
+	// [behavior]
+	viper.BindPFlag("behavior.stage_all", RootCmd.Flags().Lookup("all"))
+	viper.BindPFlag("behavior.auto_select", RootCmd.Flags().Lookup("auto"))
+	viper.BindPFlag("behavior.no_confirm", RootCmd.Flags().Lookup("yes"))
+	viper.BindPFlag("behavior.quiet", RootCmd.Flags().Lookup("quiet"))
+	viper.BindPFlag("behavior.push", RootCmd.Flags().Lookup("push"))
+	viper.BindPFlag("behavior.dry_run", RootCmd.Flags().Lookup("dry-run"))
+	viper.BindPFlag("behavior.show_diff", RootCmd.Flags().Lookup("show-diff"))
+	viper.BindPFlag("behavior.no_verify", RootCmd.Flags().Lookup("no-verify"))
+}
+
+// applyConfigDefaults applies config values to variables if flags are not explicitly set
+func applyConfigDefaults(cmd *cobra.Command) {
+	flags := cmd.Flags()
+
+	// [api]
+	if !flags.Changed("model") && viper.IsSet("api.model") {
+		model = viper.GetString("api.model")
+	}
+	if !flags.Changed("baseurl") && viper.IsSet("api.baseurl") {
+		customBaseUrl = viper.GetString("api.baseurl")
+	}
+	// [commit]
+	if !flags.Changed("language") && viper.IsSet("commit.language") {
+		language = viper.GetString("commit.language")
+	}
+	if !flags.Changed("max-length") && viper.IsSet("commit.max_length") {
+		maxLength = viper.GetInt("commit.max_length")
+	}
+	// [behavior]
+	if !flags.Changed("all") && viper.IsSet("behavior.stage_all") {
+		stageAll = viper.GetBool("behavior.stage_all")
+	}
+	if !flags.Changed("auto") && viper.IsSet("behavior.auto_select") {
+		autoSelect = viper.GetBool("behavior.auto_select")
+	}
+	if !flags.Changed("yes") && viper.IsSet("behavior.no_confirm") {
+		noConfirm = viper.GetBool("behavior.no_confirm")
+	}
+	if !flags.Changed("quiet") && viper.IsSet("behavior.quiet") {
+		quiet = viper.GetBool("behavior.quiet")
+	}
+	if !flags.Changed("push") && viper.IsSet("behavior.push") {
+		push = viper.GetBool("behavior.push")
+	}
+	if !flags.Changed("dry-run") && viper.IsSet("behavior.dry_run") {
+		dryRun = viper.GetBool("behavior.dry_run")
+	}
+	if !flags.Changed("show-diff") && viper.IsSet("behavior.show_diff") {
+		showDiff = viper.GetBool("behavior.show_diff")
+	}
+	if !flags.Changed("no-verify") && viper.IsSet("behavior.no_verify") {
+		noVerify = viper.GetBool("behavior.no_verify")
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
