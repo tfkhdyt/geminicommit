@@ -35,11 +35,11 @@ go install github.com/tfkhdyt/geminicommit@latest
 #    https://aistudio.google.com/app/apikey
 
 # 3. Configure your API key
-gmc config key set <your-api-key>
+gmc config set api.key <your-api-key>
 
 # 4. (Optional) Configure model and base URL
-gmc config model set gemini-2.5-pro          # optional: change model
-gmc config baseurl set https://your-proxy    # optional: custom endpoint
+gmc config set api.model gemini-2.5-pro          # optional: change model
+gmc config set api.baseurl https://your-proxy    # optional: custom endpoint
 
 # 5. Stage your changes
 git add <file>
@@ -50,11 +50,21 @@ gmc
 
 ---
 
+## ✅ Requirements
+
+- Go 1.24+ (for `go install`)
+- Git
+- Gemini API key from Google AI Studio
+- GitHub CLI (`gh`) for `gmc pr`
+
+---
+
 ## 🛠️ Installation
 
 - **From Source:**
 
   Add To Path:
+
   - **Zshrc:**
 
     ```sh
@@ -75,9 +85,23 @@ gmc
 
 - **Standalone Binary:**
   Download from the [releases page](https://github.com/tfkhdyt/geminicommit/releases) and move to a directory in your `PATH`:
+
   - Linux: `$HOME/.local/bin/` or `/usr/local/bin/`
   - Windows: `%LocalAppData%\Programs\`
   - macOS: `/usr/local/bin/`
+
+- **Arch Linux (AUR):**
+
+  ```sh
+  yay -S geminicommit-bin
+  ```
+
+- **Fedora (Copr):**
+
+  ```sh
+  sudo dnf copr enable tfkhdyt/geminicommit
+  sudo dnf install geminicommit
+  ```
 
 - **NixOS:**
 
@@ -97,7 +121,8 @@ gmc
 2. Set your key:
 
    ```sh
-   gmc config key set <your-api-key>
+   gmc config set api.key <your-api-key>
+   gmc config get api.key
    ```
 
 ### Advanced Configuration
@@ -106,21 +131,47 @@ Configure additional settings using the `gmc config` command:
 
 ```sh
 # Set or change the Gemini model (default: gemini-2.5-flash)
-gmc config model set gemini-2.5-pro
-gmc config model show
+gmc config set api.model gemini-2.5-pro
+gmc config get api.model
 
 # Set custom API base URL (for proxy servers or custom endpoints)
-gmc config baseurl set https://your-proxy.example.com
-gmc config baseurl show
+gmc config set api.baseurl https://your-proxy.example.com
+gmc config get api.baseurl
 
 # Clear custom base URL (revert to default)
-gmc config baseurl set ""
+gmc config set api.baseurl ""
 
 # View current API key
-gmc config key show
+gmc config get api.key
+
+# List all current configuration values
+gmc config list
 ```
 
 All configuration is stored in `~/.config/geminicommit/config.toml`.
+
+#### Available Configuration Keys
+
+```text
+[api]
+api.key             - Gemini API key
+api.model           - Gemini model name (default: gemini-2.5-flash)
+api.baseurl         - Custom base URL for Gemini API
+
+[commit]
+commit.language     - Language for commit messages (default: english)
+commit.max_length   - Maximum length of commit message (default: 72)
+
+[behavior]
+behavior.stage_all   - Stage all changes in tracked files (default: false)
+behavior.auto_select - Let AI select files and generate commit message (default: false)
+behavior.no_confirm  - Skip confirmation prompt (default: false)
+behavior.quiet       - Suppress output (default: false)
+behavior.push        - Push committed changes to remote (default: false)
+behavior.dry_run     - Run without making changes (default: false)
+behavior.show_diff   - Show diff before committing (default: false)
+behavior.no_verify   - Skip git commit-msg hook verification (default: false)
+```
 
 #### Configuration File Format
 
