@@ -1,0 +1,48 @@
+name: Publish to Copr
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  copr-build:
+    if: github.repository_owner == 'tfkhdyt'
+    runs-on: ubuntu-latest
+    env:
+      COPR_LOGIN: ${{ secrets.COPR_LOGIN }}
+      COPR_TOKEN: ${{ secrets.COPR_TOKEN }}
+      COPR_SECRET: ${{ secrets.COPR_SECRET }}
+      COPR_PROJECT: geminicommit
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install build tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm python3-pip
+          python3 -m pip install --user copr-cli
+      - name: Configure copr-cli
+        run: |
+          mkdir -p ~/.config
+          cat <<'EOF' > ~/.config/copr
+          [copr-cli]
+          login = ${COPR_LOGIN}
+          token = ${COPR_TOKEN}
+          secret = ${COPR_SECRET}
+          copr_url = https://copr.fedorainfracloud.org
+          EOF
+      - name: Build SRPM
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+          cp geminicommit.spec rpmbuild/SPECS/
+          git archive --format=tar.gz --prefix=geminicommit-${VERSION}/ -o "rpmbuild/SOURCES/v${VERSION}.tar.gz" "${GITHUB_REF_NAME}"
+          rpmbuild -bs --define "_topdir ${PWD}/rpmbuild" rpmbuild/SPECS/geminicommit.spec
+      - name: Submit build to Copr
+        run: |
+          ~/.local/bin/copr-cli build "${COPR_PROJECT}" rpmbuild/SRPMS/*.src.rpm
