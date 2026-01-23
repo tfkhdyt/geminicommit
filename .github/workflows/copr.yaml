@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       COPR_LOGIN: ${{ secrets.COPR_LOGIN }}
+      COPR_USERNAME: ${{ secrets.COPR_USERNAME }}
       COPR_TOKEN: ${{ secrets.COPR_TOKEN }}
-      COPR_SECRET: ${{ secrets.COPR_SECRET }}
       COPR_PROJECT: geminicommit
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +32,8 @@ jobs:
           cat <<'EOF' > ~/.config/copr
           [copr-cli]
           login = ${COPR_LOGIN}
+          username = ${COPR_USERNAME}
           token = ${COPR_TOKEN}
-          secret = ${COPR_SECRET}
           copr_url = https://copr.fedorainfracloud.org
           EOF
       - name: Build SRPM
