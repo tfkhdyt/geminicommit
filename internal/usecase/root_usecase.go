@@ -170,7 +170,7 @@ func (r *RootUsecase) RootCommand(
 
 		switch selectedAction {
 		case service.ActionConfirm:
-			if err := r.gitService.ConfirmAction(finalMessage, opts.Quiet, opts.Push, opts.DryRun, opts.NoVerify); err != nil {
+			if err := r.gitService.ConfirmAction(finalMessage, opts.Quiet, opts.Push, opts.DryRun, opts.NoVerify, opts.Model); err != nil {
 				return err
 			}
 			return nil

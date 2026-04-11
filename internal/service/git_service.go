@@ -451,11 +451,14 @@ func (g *GitService) StageFiles(files []string) error {
 }
 
 // ConfirmAction performs the actual commit and optional push
-func (g *GitService) ConfirmAction(message string, quiet *bool, push *bool, dryRun *bool, noVerify *bool) error {
+func (g *GitService) ConfirmAction(message string, quiet *bool, push *bool, dryRun *bool, noVerify *bool, modelName *string) error {
+	coAuthor := fmt.Sprintf("Co-authored-by: gemini-cli %s <218195315+gemini-cli@users.noreply.github.com>", *modelName)
+	fullMessage := message + "\n\n" + coAuthor
+
 	if *dryRun {
 		if !*quiet {
 			color.New(color.FgYellow).Println("🔍 DRY RUN - No changes will be made")
-			color.New(color.FgCyan).Printf("Would commit with message: %s\n", message)
+			color.New(color.FgCyan).Printf("Would commit with message: %s\n", fullMessage)
 			if *push {
 				color.New(color.FgCyan).Println("Would push changes to remote repository")
 			}
@@ -463,7 +466,7 @@ func (g *GitService) ConfirmAction(message string, quiet *bool, push *bool, dryR
 		return nil
 	}
 
-	if err := g.CommitChangesWithOptions(message, quiet, noVerify); err != nil {
+	if err := g.CommitChangesWithOptions(fullMessage, quiet, noVerify); err != nil {
 		return err
 	}
 
