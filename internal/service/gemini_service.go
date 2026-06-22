@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/fatih/color"
@@ -65,19 +64,33 @@ type SelectFilesAndGenerateCommitOptions struct {
 	Issue        *string
 }
 
-var (
-	geminiService *GeminiService
-	geminiOnce    sync.Once
-)
+var defaultSafetySettings = []*genai.SafetySetting{
+	{Category: genai.HarmCategoryHarassment, Threshold: genai.HarmBlockThresholdBlockNone},
+	{Category: genai.HarmCategoryHateSpeech, Threshold: genai.HarmBlockThresholdBlockNone},
+	{Category: genai.HarmCategoryDangerousContent, Threshold: genai.HarmBlockThresholdBlockNone},
+	{Category: genai.HarmCategorySexuallyExplicit, Threshold: genai.HarmBlockThresholdBlockNone},
+}
+
+func NewGeminiClient(ctx context.Context, apiKey string, customBaseUrl *string) (*genai.Client, error) {
+	baseUrl := ""
+	if customBaseUrl != nil {
+		baseUrl = *customBaseUrl
+	}
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:  apiKey,
+		Backend: genai.BackendGeminiAPI,
+		HTTPOptions: genai.HTTPOptions{
+			BaseURL: baseUrl,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting gemini client: %v", err)
+	}
+	return client, nil
+}
 
 func NewGeminiService() *GeminiService {
-	geminiOnce.Do(func() {
-		geminiService = &GeminiService{
-			systemPrompt: systemPrompt,
-		}
-	})
-
-	return geminiService
+	return &GeminiService{systemPrompt: systemPrompt}
 }
 
 func (g *GeminiService) getModelTemperature(modelName string) float32 {
@@ -236,24 +249,7 @@ func (g *GeminiService) AnalyzeChanges(
 	for attempt := range 2 {
 		resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(userPrompt), &genai.GenerateContentConfig{
 			Temperature: &temp,
-			SafetySettings: []*genai.SafetySetting{
-				{
-					Category:  genai.HarmCategoryHarassment,
-					Threshold: genai.HarmBlockThresholdBlockNone,
-				},
-				{
-					Category:  genai.HarmCategoryHateSpeech,
-					Threshold: genai.HarmBlockThresholdBlockNone,
-				},
-				{
-					Category:  genai.HarmCategoryDangerousContent,
-					Threshold: genai.HarmBlockThresholdBlockNone,
-				},
-				{
-					Category:  genai.HarmCategorySexuallyExplicit,
-					Threshold: genai.HarmBlockThresholdBlockNone,
-				},
-			},
+			SafetySettings: defaultSafetySettings,
 			SystemInstruction: &genai.Content{
 				Role:  genai.RoleUser,
 				Parts: []*genai.Part{{Text: enhancedSystemPrompt}},
@@ -332,24 +328,7 @@ Here's the code diff:
 	temp := g.getModelTemperature(*modelName)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *modelName, genai.Text(prompt), &genai.GenerateContentConfig{
 		Temperature: &temp,
-		SafetySettings: []*genai.SafetySetting{
-			{
-				Category:  genai.HarmCategoryHarassment,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-			{
-				Category:  genai.HarmCategoryHateSpeech,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-			{
-				Category:  genai.HarmCategoryDangerousContent,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-			{
-				Category:  genai.HarmCategorySexuallyExplicit,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-		},
+		SafetySettings: defaultSafetySettings,
 		SystemInstruction: &genai.Content{
 			Role:  genai.RoleModel,
 			Parts: []*genai.Part{{Text: enhancedSystemPrompt}},
@@ -481,24 +460,7 @@ Requirements:
 	temp := g.getModelTemperature(*opts.ModelName)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *opts.ModelName, genai.Text(prompt), &genai.GenerateContentConfig{
 		Temperature: &temp,
-		SafetySettings: []*genai.SafetySetting{
-			{
-				Category:  genai.HarmCategoryHarassment,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-			{
-				Category:  genai.HarmCategoryHateSpeech,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-			{
-				Category:  genai.HarmCategoryDangerousContent,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-			{
-				Category:  genai.HarmCategorySexuallyExplicit,
-				Threshold: genai.HarmBlockThresholdBlockNone,
-			},
-		},
+		SafetySettings: defaultSafetySettings,
 		SystemInstruction: &genai.Content{
 			Role:  genai.RoleModel,
 			Parts: []*genai.Part{{Text: enhancedSystemPrompt}},

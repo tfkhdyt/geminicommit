@@ -41,7 +41,7 @@ var RootCmd = &cobra.Command{
 	Use:     "gmc",
 	Short:   "CLI that writes your git commit messages for you with Google Gemini AI",
 	Long:    "CLI that writes your git commit messages for you with Google Gemini AI",
-	Version: "0.7.0",
+	Version: "0.8.0",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Apply config values to variables if flags are not explicitly set
 		applyConfigDefaults(cmd)
@@ -209,27 +209,19 @@ func initConfig() {
 }
 
 func createConfig() {
-	// Create the directory and file paths.
 	config, err := os.UserConfigDir()
 	cobra.CheckErr(err)
 	configDirPath := filepath.Join(config, "geminicommit")
 	configFilePath := filepath.Join(configDirPath, "config.toml")
 
-	// Create the directory if it does not exist.
-	if _, err := os.Stat(configDirPath); os.IsNotExist(err) {
-		if err := os.MkdirAll(configDirPath, 0o755); err != nil {
-			fmt.Println("Error: failed to make config dir")
-			os.Exit(1)
-		}
+	if err := os.MkdirAll(configDirPath, 0o755); err != nil {
+		fmt.Println("Error: failed to make config dir")
+		os.Exit(1)
 	}
-
-	// Create the file if it does not exist.
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		file, err := os.Create(configFilePath)
-		if err != nil {
-			fmt.Println("Error: failed to make config file")
-			os.Exit(1)
-		}
-		defer file.Close()
+	file, err := os.Create(configFilePath)
+	if err != nil {
+		fmt.Println("Error: failed to make config file")
+		os.Exit(1)
 	}
+	file.Close()
 }

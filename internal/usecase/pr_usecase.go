@@ -7,10 +7,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/fatih/color"
-	"google.golang.org/genai"
 
 	"github.com/tfkhdyt/geminicommit/internal/service"
 )
@@ -21,50 +19,12 @@ type PRUsecase struct {
 	interactionService *service.InteractionService
 }
 
-var (
-	prUsecaseInstance *PRUsecase
-	prUsecaseOnce     sync.Once
-)
-
 func NewPRUsecase() *PRUsecase {
-	prUsecaseOnce.Do(func() {
-		gitService := service.NewGitService()
-		geminiService := service.NewGeminiService()
-		interactionService := service.NewInteractionService()
-
-		prUsecaseInstance = &PRUsecase{
-			gitService:         gitService,
-			geminiService:      geminiService,
-			interactionService: interactionService,
-		}
-	})
-
-	return prUsecaseInstance
-}
-
-func (p *PRUsecase) initializeGeminiClient(
-	ctx context.Context,
-	apiKey string,
-	customBaseUrl *string,
-) (*genai.Client, error) {
-	baseUrl := ""
-	if customBaseUrl != nil {
-		baseUrl = *customBaseUrl
+	return &PRUsecase{
+		gitService:         service.NewGitService(),
+		geminiService:      service.NewGeminiService(),
+		interactionService: service.NewInteractionService(),
 	}
-	client, err := genai.NewClient(
-		ctx,
-		&genai.ClientConfig{
-			APIKey:  apiKey,
-			Backend: genai.BackendGeminiAPI,
-			HTTPOptions: genai.HTTPOptions{
-				BaseURL: baseUrl,
-			},
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error getting gemini client: %v", err)
-	}
-	return client, nil
 }
 
 func (p *PRUsecase) PRCommand(
@@ -81,7 +41,7 @@ func (p *PRUsecase) PRCommand(
 	draft *bool,
 	customBaseUrl *string,
 ) error {
-	client, err := p.initializeGeminiClient(ctx, apiKey, customBaseUrl)
+	client, err := service.NewGeminiClient(ctx, apiKey, customBaseUrl)
 	if err != nil {
 		fmt.Printf("Error getting gemini client: %v", err)
 		os.Exit(1)

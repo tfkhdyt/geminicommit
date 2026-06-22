@@ -43,8 +43,7 @@ Example:
 	Run: func(cmd *cobra.Command, args []string) {
 		key := args[0]
 
-		_, valid := ValidConfigKeys[key]
-		if !valid {
+		if !ValidConfigKeys[key] {
 			fmt.Printf("Error: unknown config key '%s'\n", key)
 			fmt.Println("Run 'gmc config get --help' to see available keys")
 			os.Exit(1)

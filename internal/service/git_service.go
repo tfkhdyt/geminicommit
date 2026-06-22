@@ -1,14 +1,12 @@
 package service
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/fatih/color"
@@ -16,17 +14,8 @@ import (
 
 type GitService struct{}
 
-var (
-	instance *GitService
-	once     sync.Once
-)
-
 func NewGitService() *GitService {
-	once.Do(func() {
-		instance = &GitService{}
-	})
-
-	return instance
+	return &GitService{}
 }
 
 func (g *GitService) VerifyGitInstallation() error {
@@ -207,19 +196,6 @@ func (g *GitService) GetDiffWithUntracked() (string, error) {
 	return strings.Join(diffParts, "\n\n"), nil
 }
 
-func (g *GitService) CommitChanges(message string, quiet *bool) error {
-	cmd := exec.Command("git", "commit", "-m", message)
-	if !*quiet {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	}
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to commit changes. %v", err)
-	}
-
-	return nil
-}
-
 func (g *GitService) PushChanges(quiet *bool) error {
 	cmd := exec.Command("git", "push")
 	if !*quiet {
@@ -231,34 +207,6 @@ func (g *GitService) PushChanges(quiet *bool) error {
 	}
 
 	return nil
-}
-
-func (g *GitService) GetLastCommitMessages(count int) ([]string, error) {
-	// Command to get only commit messages
-	cmd := exec.Command("git", "log",
-		"--pretty=format:%s", // %s formats only the commit message
-		"-n", fmt.Sprintf("%d", count))
-
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	if err != nil {
-		return nil, fmt.Errorf("git log error: %v: %s", err, stderr.String())
-	}
-
-	// Split output into lines and filter empty ones
-	messages := strings.Split(out.String(), "\n")
-	result := make([]string, 0, len(messages))
-	for _, msg := range messages {
-		if msg != "" {
-			result = append(result, msg)
-		}
-	}
-
-	return result, nil
 }
 
 func (g *GitService) DetectIssueFromBranch() (string, error) {
@@ -563,21 +511,35 @@ func (g *GitService) CreatePullRequest(
 		return nil
 	}
 
-	// Get the current branch name
-	branchName, err := g.GetCurrentBranchName()
+	branchOutput, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get current branch name: %v", err)
+	}
+	branchName := strings.TrimSpace(string(branchOutput))
+
+	remotesOutput, err := exec.Command("git", "remote").Output()
+	if err != nil {
+		return fmt.Errorf("failed to get remotes: %v", err)
+	}
+	remotes := strings.Fields(string(remotesOutput))
+	if len(remotes) == 0 {
+		return fmt.Errorf("no git remotes configured")
+	}
+	remoteName := remotes[0]
+	for _, r := range remotes {
+		if r == "origin" {
+			remoteName = r
+			break
+		}
 	}
 
-	// Get the remote name
-	remoteName, err := g.GetRemoteName()
-	if err != nil {
-		return err
+	pushCmd := exec.Command("git", "push", "-u", remoteName, branchName)
+	if !*quiet {
+		pushCmd.Stdout = os.Stdout
+		pushCmd.Stderr = os.Stderr
 	}
-
-	// Push the current branch to the remote
-	if err := g.PushBranch(remoteName, branchName, quiet); err != nil {
-		return err
+	if err := pushCmd.Run(); err != nil {
+		return fmt.Errorf("failed to push branch '%s' to remote '%s': %v", branchName, remoteName, err)
 	}
 
 	args := []string{"pr", "create", "--title", title, "--body", body}
@@ -599,47 +561,5 @@ func (g *GitService) CreatePullRequest(
 		color.New(color.FgGreen).Println("✔ Successfully created a pull request!")
 	}
 
-	return nil
-}
-
-func (g *GitService) GetCurrentBranchName() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current branch name: %v", err)
-	}
-	return strings.TrimSpace(string(output)), nil
-}
-
-func (g *GitService) GetRemoteName() (string, error) {
-	remotesOutput, err := exec.Command("git", "remote").Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get remotes: %v", err)
-	}
-	remotes := strings.Fields(string(remotesOutput))
-	if len(remotes) == 0 {
-		return "", fmt.Errorf("no git remotes configured")
-	}
-
-	// Prefer 'origin' if it exists
-	remoteName := remotes[0]
-	for _, r := range remotes {
-		if r == "origin" {
-			remoteName = r
-			break
-		}
-	}
-	return remoteName, nil
-}
-
-func (g *GitService) PushBranch(remoteName, branchName string, quiet *bool) error {
-	cmd := exec.Command("git", "push", "-u", remoteName, branchName)
-	if !*quiet {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	}
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to push branch '%s' to remote '%s': %v", branchName, remoteName, err)
-	}
 	return nil
 }

@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tfkhdyt/geminicommit/internal/service"
 	"github.com/tfkhdyt/geminicommit/internal/usecase"
 )
 
@@ -18,19 +16,8 @@ type RootHandler struct {
 	useCase *usecase.RootUsecase
 }
 
-var (
-	rootHandlerInstance *RootHandler
-	rootHandlerOnce     sync.Once
-)
-
 func NewRootHandler() *RootHandler {
-	rootHandlerOnce.Do(func() {
-		useCase := usecase.NewRootUsecase()
-
-		rootHandlerInstance = &RootHandler{useCase}
-	})
-
-	return rootHandlerInstance
+	return &RootHandler{useCase: usecase.NewRootUsecase()}
 }
 
 func (r *RootHandler) RootCommand(
@@ -51,16 +38,6 @@ func (r *RootHandler) RootCommand(
 	customBaseUrl *string,
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
-		modelFromConfig := viper.GetString("api.model")
-		if modelFromConfig != "" && *model == service.DefaultModel {
-			*model = modelFromConfig
-		}
-
-		baseUrlFromConfig := viper.GetString("api.baseurl")
-		if baseUrlFromConfig != "" && *customBaseUrl == service.DefaultBaseUrl {
-			*customBaseUrl = baseUrlFromConfig
-		}
-
 		if *quiet && !*noConfirm {
 			*quiet = false
 		}

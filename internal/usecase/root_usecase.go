@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/fatih/color"
@@ -19,46 +18,12 @@ type RootUsecase struct {
 	interactionService *service.InteractionService
 }
 
-var (
-	rootUsecaseInstance *RootUsecase
-	rootUsecaseOnce     sync.Once
-)
-
 func NewRootUsecase() *RootUsecase {
-	rootUsecaseOnce.Do(func() {
-		gitService := service.NewGitService()
-		geminiService := service.NewGeminiService()
-		interactionService := service.NewInteractionService()
-
-		rootUsecaseInstance = &RootUsecase{
-			gitService:         gitService,
-			geminiService:      geminiService,
-			interactionService: interactionService,
-		}
-	})
-
-	return rootUsecaseInstance
-}
-
-func (r *RootUsecase) initializeGeminiClient(ctx context.Context, apiKey string, customBaseUrl *string) (*genai.Client, error) {
-	baseUrl := ""
-	if customBaseUrl != nil {
-		baseUrl = *customBaseUrl
+	return &RootUsecase{
+		gitService:         service.NewGitService(),
+		geminiService:      service.NewGeminiService(),
+		interactionService: service.NewInteractionService(),
 	}
-	client, err := genai.NewClient(
-		ctx,
-		&genai.ClientConfig{
-			APIKey:  apiKey,
-			Backend: genai.BackendGeminiAPI,
-			HTTPOptions: genai.HTTPOptions{
-				BaseURL: baseUrl,
-			},
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error getting gemini client: %v", err)
-	}
-	return client, nil
 }
 
 func (r *RootUsecase) RootCommand(
@@ -79,8 +44,7 @@ func (r *RootUsecase) RootCommand(
 	noVerify *bool,
 	customBaseUrl *string,
 ) error {
-	// Initialize Gemini client
-	client, err := r.initializeGeminiClient(ctx, apiKey, customBaseUrl)
+	client, err := service.NewGeminiClient(ctx, apiKey, customBaseUrl)
 	if err != nil {
 		fmt.Printf("Error getting gemini client: %v", err)
 		os.Exit(1)

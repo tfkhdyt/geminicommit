@@ -1,14 +1,12 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/fatih/color"
-	"google.golang.org/genai"
 )
 
 // Action represents user actions
@@ -202,41 +200,4 @@ func (h *InteractionService) EditFileList(files []string) ([]string, error) {
 	return selectedFiles, nil
 }
 
-// AutoFlow orchestrates the complete auto flow using the huh library
-func (h *InteractionService) AutoFlow(geminiClient *genai.Client, ctx context.Context, data *PreCommitData, opts *CommitOptions) (*PreCommitData, error) {
-	// Verify Git installation and repository (this is already done in the usecase)
-	// Detect all changes in working directory (this is already done in the usecase)
 
-	// Send diff to AI for file selection
-	selectedFiles, err := h.SelectFilesUsingAI(geminiClient, ctx, data.Diff, opts.UserContext, opts.Model)
-	if err != nil {
-		return nil, err
-	}
-
-	// Show selected files to user
-	action, confirmedFiles, err := h.ConfirmAutoSelectedFiles(selectedFiles)
-	if err != nil || action == ActionCancel {
-		return nil, fmt.Errorf("operation cancelled")
-	}
-
-	switch action {
-	case ActionAutoSelect, ActionConfirm:
-		data.Files = confirmedFiles
-	case ActionEdit:
-		// If user wants to edit, open file list editor
-		editedFiles, err := h.EditFileList(selectedFiles)
-		if err != nil {
-			return nil, err
-		}
-		data.Files = editedFiles
-	}
-
-	return data, nil
-}
-
-// SelectFilesUsingAI is a wrapper method to call the AI file selection from the interaction service
-func (h *InteractionService) SelectFilesUsingAI(geminiClient *genai.Client, ctx context.Context, diff string, userContext *string, modelName *string) ([]string, error) {
-	// Use the gemini service to select files using AI
-	geminiService := NewGeminiService()
-	return geminiService.SelectFilesUsingAI(geminiClient, ctx, diff, userContext, modelName)
-}

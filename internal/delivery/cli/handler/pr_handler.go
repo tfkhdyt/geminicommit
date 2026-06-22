@@ -7,13 +7,11 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tfkhdyt/geminicommit/internal/service"
 	"github.com/tfkhdyt/geminicommit/internal/usecase"
 )
 
@@ -21,19 +19,8 @@ type PRHandler struct {
 	useCase *usecase.PRUsecase
 }
 
-var (
-	prHandlerInstance *PRHandler
-	prHandlerOnce     sync.Once
-)
-
 func NewPRHandler() *PRHandler {
-	prHandlerOnce.Do(func() {
-		useCase := usecase.NewPRUsecase()
-
-		prHandlerInstance = &PRHandler{useCase}
-	})
-
-	return prHandlerInstance
+	return &PRHandler{useCase: usecase.NewPRUsecase()}
 }
 
 func (p *PRHandler) PRCommand(
@@ -50,16 +37,6 @@ func (p *PRHandler) PRCommand(
 	customBaseUrl *string,
 ) func(*cobra.Command, []string) {
 	return func(_ *cobra.Command, _ []string) {
-		modelFromConfig := viper.GetString("api.model")
-		if modelFromConfig != "" && *model == service.DefaultModel {
-			*model = modelFromConfig
-		}
-
-		baseUrlFromConfig := viper.GetString("api.baseurl")
-		if baseUrlFromConfig != "" && *customBaseUrl == service.DefaultBaseUrl {
-			*customBaseUrl = baseUrlFromConfig
-		}
-
 		if *quiet && !*noConfirm {
 			*quiet = false
 		}

@@ -6,33 +6,20 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// ValidConfigKeys defines all valid configuration keys and their types
-var ValidConfigKeys = map[string]string{
-	// [api]
-	"api.key":     "string",
-	"api.model":   "string",
-	"api.baseurl": "string",
-	// [commit]
-	"commit.language":   "string",
-	"commit.max_length": "int",
-	// [behavior]
-	"behavior.stage_all":   "bool",
-	"behavior.auto_select": "bool",
-	"behavior.no_confirm":  "bool",
-	"behavior.quiet":       "bool",
-	"behavior.push":        "bool",
-	"behavior.dry_run":     "bool",
-	"behavior.show_diff":   "bool",
-	"behavior.no_verify":   "bool",
+var ValidConfigKeys = map[string]bool{
+	"api.key": true, "api.model": true, "api.baseurl": true,
+	"commit.language": true, "commit.max_length": true,
+	"behavior.stage_all": true, "behavior.auto_select": true,
+	"behavior.no_confirm": true, "behavior.quiet": true,
+	"behavior.push": true, "behavior.dry_run": true,
+	"behavior.show_diff": true, "behavior.no_verify": true,
 }
 
-// setCmd represents the set command
 var setCmd = &cobra.Command{
 	Use:   "set <key> <value>",
 	Short: "Set a configuration value",
@@ -66,39 +53,18 @@ Example:
 		key := args[0]
 		value := args[1]
 
-		keyType, valid := ValidConfigKeys[key]
-		if !valid {
+		if !ValidConfigKeys[key] {
 			fmt.Printf("Error: unknown config key '%s'\n", key)
 			fmt.Println("Run 'gmc config set --help' to see available keys")
 			os.Exit(1)
 		}
 
-		var finalValue interface{}
-		switch keyType {
-		case "int":
-			intVal, err := strconv.Atoi(value)
-			if err != nil {
-				fmt.Printf("Error: value '%s' is not a valid integer\n", value)
-				os.Exit(1)
-			}
-			finalValue = intVal
-		case "bool":
-			boolVal, err := strconv.ParseBool(value)
-			if err != nil {
-				fmt.Printf("Error: value '%s' is not a valid boolean (use true/false)\n", value)
-				os.Exit(1)
-			}
-			finalValue = boolVal
-		default:
-			finalValue = value
-		}
-
-		viper.Set(key, finalValue)
+		viper.Set(key, value)
 		if err := viper.WriteConfig(); err != nil {
 			fmt.Printf("Error: failed to write config: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Set %s = %v\n", key, finalValue)
+		fmt.Printf("Set %s = %v\n", key, value)
 	},
 }
 
