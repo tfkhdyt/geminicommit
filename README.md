@@ -130,7 +130,7 @@ gmc
 Configure additional settings using the `gmc config` command:
 
 ```sh
-# Set or change the Gemini model (default: gemini-2.5-flash)
+# Set or change the Gemini model (default: gemini-3.5-flash)
 gmc config set api.model gemini-2.5-pro
 gmc config get api.model
 
@@ -155,7 +155,7 @@ All configuration is stored in `~/.config/geminicommit/config.toml`.
 ```text
 [api]
 api.key             - Gemini API key
-api.model           - Gemini model name (default: gemini-2.5-flash)
+api.model           - Gemini model name (default: gemini-3.5-flash)
 api.baseurl         - Custom base URL for Gemini API
 
 [commit]
@@ -180,7 +180,7 @@ The configuration file uses TOML format:
 ```toml
 [api]
 key = "your-api-key"
-model = "gemini-2.5-flash"
+model = "gemini-3.5-flash"
 baseurl = "https://your-proxy.example.com"  # optional
 ```
 

@@ -27,7 +27,7 @@ var setCmd = &cobra.Command{
 
 [api]
   api.key             - Gemini API key
-  api.model           - Gemini model name (default: gemini-2.5-flash)
+  api.model           - Gemini model name (default: gemini-3.5-flash)
   api.baseurl         - Custom base URL for Gemini API
 
 [commit]
