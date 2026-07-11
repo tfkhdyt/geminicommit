@@ -38,10 +38,10 @@ jobs:
           EOF
       - name: Build SRPM
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="$(awk '/^Version:/{print $2; exit}' geminicommit.spec)"
           mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
           cp geminicommit.spec rpmbuild/SPECS/
-          git archive --format=tar.gz --prefix=geminicommit-${VERSION}/ -o "rpmbuild/SOURCES/v${VERSION}.tar.gz" "${GITHUB_REF_NAME}"
+          git archive --format=tar.gz --prefix=geminicommit-${VERSION}/ -o "rpmbuild/SOURCES/v${VERSION}.tar.gz" HEAD
           rpmbuild -bs --define "_topdir ${PWD}/rpmbuild" rpmbuild/SPECS/geminicommit.spec
       - name: Submit build to Copr
         run: |
