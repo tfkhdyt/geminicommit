@@ -1,5 +1,5 @@
 Name:           geminicommit
-Version:        0.7.0
+Version:        0.8.0
 Release:        1%{?dist}
 Summary:        AI-powered conventional commit messages with Google Gemini
 
@@ -37,5 +37,8 @@ ln -s %{name} %{buildroot}%{_bindir}/gmc
 %{_bindir}/gmc
 
 %changelog
+* Sat Jul 11 2026 Taufik Hidayat <tfkhdyt@proton.me> - 0.8.0-1
+- Bump to 0.8.0
+
 * Thu Jan 22 2026 Taufik Hidayat <tfkhdyt@proton.me> - 0.7.0-1
 - Initial package
