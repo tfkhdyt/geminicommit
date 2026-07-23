@@ -245,7 +245,7 @@ func (g *GitService) DetectIssueFromBranch() (string, error) {
 }
 
 func (g *GitService) CommitChangesWithOptions(message string, quiet *bool, noVerify *bool) error {
-	args := []string{"commit", "-m", message}
+	args := []string{"commit", "-m", strings.TrimSpace(message)}
 	if *noVerify {
 		args = append(args, "--no-verify")
 	}
