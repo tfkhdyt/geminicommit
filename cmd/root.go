@@ -31,6 +31,7 @@ var (
 	maxLength     = 72
 	language      = "english"
 	issue         string
+	issueFooter   = "Refs"
 	noVerify      = false
 	customBaseUrl string
 	rootHandler   = handler.NewRootHandler()
@@ -41,7 +42,7 @@ var RootCmd = &cobra.Command{
 	Use:     "gmc",
 	Short:   "CLI that writes your git commit messages for you with Google Gemini AI",
 	Long:    "CLI that writes your git commit messages for you with Google Gemini AI",
-	Version: "0.8.0",
+	Version: "0.9.0",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Apply config values to variables if flags are not explicitly set
 		applyConfigDefaults(cmd)
@@ -62,6 +63,7 @@ var RootCmd = &cobra.Command{
 		&maxLength,
 		&language,
 		&issue,
+		&issueFooter,
 		&noVerify,
 		&customBaseUrl,
 	),
@@ -111,6 +113,8 @@ func init() {
 	RootCmd.Flags().
 		StringVarP(&issue, "issue", "i", "", "issue number or title")
 	RootCmd.Flags().
+		StringVar(&issueFooter, "issue-footer", issueFooter, "keyword for the auto-appended issue trailer, e.g. Refs/Closes/Fixes; empty to disable")
+	RootCmd.Flags().
 		BoolVarP(&noVerify, "no-verify", "", noVerify, "skip git commit-msg hook verification")
 	RootCmd.Flags().
 		StringVarP(&customBaseUrl, "baseurl", "", service.DefaultBaseUrl, "specify custom url for Google Gemini Pro API")
@@ -122,6 +126,7 @@ func init() {
 	// [commit]
 	viper.BindPFlag("commit.language", RootCmd.Flags().Lookup("language"))
 	viper.BindPFlag("commit.max_length", RootCmd.Flags().Lookup("max-length"))
+	viper.BindPFlag("commit.issue_footer", RootCmd.Flags().Lookup("issue-footer"))
 	// [behavior]
 	viper.BindPFlag("behavior.stage_all", RootCmd.Flags().Lookup("all"))
 	viper.BindPFlag("behavior.auto_select", RootCmd.Flags().Lookup("auto"))
@@ -150,6 +155,9 @@ func applyConfigDefaults(cmd *cobra.Command) {
 	}
 	if !flags.Changed("max-length") && viper.IsSet("commit.max_length") {
 		maxLength = viper.GetInt("commit.max_length")
+	}
+	if !flags.Changed("issue-footer") && viper.IsSet("commit.issue_footer") {
+		issueFooter = viper.GetString("commit.issue_footer")
 	}
 	// [behavior]
 	if !flags.Changed("all") && viper.IsSet("behavior.stage_all") {

@@ -25,6 +25,7 @@ var getCmd = &cobra.Command{
 [commit]
   commit.language     - Language for commit messages
   commit.max_length   - Maximum length of commit message
+  commit.issue_footer - Keyword for auto-appended issue trailer
 
 [behavior]
   behavior.stage_all   - Stage all changes in tracked files

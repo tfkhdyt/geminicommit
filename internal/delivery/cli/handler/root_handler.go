@@ -34,6 +34,7 @@ func (r *RootHandler) RootCommand(
 	maxLength *int,
 	language *string,
 	issue *string,
+	issueFooter *string,
 	noVerify *bool,
 	customBaseUrl *string,
 ) func(*cobra.Command, []string) {
@@ -53,7 +54,7 @@ func (r *RootHandler) RootCommand(
 			os.Exit(1)
 		}
 
-		err := r.useCase.RootCommand(ctx, apiKey, stageAll, autoSelect, userContext, model, noConfirm, quiet, push, dryRun, showDiff, maxLength, language, issue, noVerify, customBaseUrl)
+		err := r.useCase.RootCommand(ctx, apiKey, stageAll, autoSelect, userContext, model, noConfirm, quiet, push, dryRun, showDiff, maxLength, language, issue, issueFooter, noVerify, customBaseUrl)
 		cobra.CheckErr(err)
 	}
 }

@@ -41,6 +41,7 @@ func (r *RootUsecase) RootCommand(
 	maxLength *int,
 	language *string,
 	issue *string,
+	issueFooter *string,
 	noVerify *bool,
 	customBaseUrl *string,
 ) error {
@@ -102,6 +103,7 @@ func (r *RootUsecase) RootCommand(
 		}
 		data = autoResult.Data // Update data with confirmed files
 		initialCommitMessage = autoResult.CommitMessage
+		initialCommitMessage = service.AppendIssueFooter(initialCommitMessage, data.Issue, *issueFooter)
 
 		// In auto mode, we need to stage only the selected files for the commit
 		// First, unstage everything
@@ -125,6 +127,7 @@ func (r *RootUsecase) RootCommand(
 			if err != nil {
 				return err
 			}
+			message = service.AppendIssueFooter(message, data.Issue, *issueFooter)
 		}
 
 		selectedAction, finalMessage, err := r.interactionService.HandleUserAction(message, opts)

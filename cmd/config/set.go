@@ -13,7 +13,7 @@ import (
 
 var ValidConfigKeys = map[string]bool{
 	"api.key": true, "api.model": true, "api.baseurl": true,
-	"commit.language": true, "commit.max_length": true,
+	"commit.language": true, "commit.max_length": true, "commit.issue_footer": true,
 	"behavior.stage_all": true, "behavior.auto_select": true,
 	"behavior.no_confirm": true, "behavior.quiet": true,
 	"behavior.push": true, "behavior.dry_run": true,
@@ -33,6 +33,7 @@ var setCmd = &cobra.Command{
 [commit]
   commit.language     - Language for commit messages (default: english)
   commit.max_length   - Maximum length of commit message (default: 72)
+  commit.issue_footer - Keyword for auto-appended issue trailer, e.g. Refs/Closes/Fixes (default: Refs)
 
 [behavior]
   behavior.stage_all   - Stage all changes in tracked files (default: false)

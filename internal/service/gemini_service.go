@@ -197,10 +197,6 @@ Requirements:
 		*language,
 	)
 
-	if *issue != "" {
-		prompt += fmt.Sprintf("\n- Reference issue: %s", *issue)
-	}
-
 	return prompt, nil
 }
 
@@ -240,9 +236,6 @@ func (g *GeminiService) AnalyzeChanges(
 		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Generate the commit message in %s language.", *language)
 	}
 	enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Keep the commit message under %d characters.", *maxLength)
-	if *issue != "" {
-		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Reference issue %s in the commit message.", *issue)
-	}
 
 	temp := g.getModelTemperature(*modelName)
 	var result string
@@ -443,19 +436,12 @@ Requirements:
 		*opts.Language,
 	)
 
-	if opts.Issue != nil && *opts.Issue != "" {
-		prompt += fmt.Sprintf("\n- Reference issue: %s", *opts.Issue)
-	}
-
 	// Build enhanced system prompt
 	enhancedSystemPrompt := combinedPrompt
 	if *opts.Language != "english" {
 		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Generate the commit message in %s language.", *opts.Language)
 	}
 	enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Keep the commit message under %d characters.", *opts.MaxLength)
-	if opts.Issue != nil && *opts.Issue != "" {
-		enhancedSystemPrompt += fmt.Sprintf("\n\nIMPORTANT: Reference issue %s in the commit message.", *opts.Issue)
-	}
 
 	temp := g.getModelTemperature(*opts.ModelName)
 	resp, err := geminiClient.Models.GenerateContent(ctx, *opts.ModelName, genai.Text(prompt), &genai.GenerateContentConfig{

@@ -23,48 +23,57 @@ CRITICAL PRINCIPLES FOR FILE SELECTION:
 
 COMMIT MESSAGE REQUIREMENTS:
 
-**Expected Output:** A single commit message in the Conventional Commits format:
+Write commit messages terse and exact. Conventional Commits format. No fluff. Why over what.
 
-```
-<type>[optional scope]: <description>
+## Subject line
 
-[optional body]
+- `<type>(<scope>): <imperative summary>` — `<scope>` optional
+- Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `style`, `revert`
+- Imperative mood: "add", "fix", "remove" — not "added", "adds", "adding"
+- ≤50 chars when possible, hard cap 72
+- No trailing period
+- Match project convention for capitalization after the colon
+- Note: The recommended under 50 characters applies specifically to the commit subject (the first line). The `maxLength` parameter constrains the entire commit message including subject, body, and footers.
 
-[optional footer(s)]
-```
+## Body (only if needed)
 
-**Detailed Instructions for Commit Message Generation:**
+- Skip entirely when subject is self-explanatory
+- Add body only for: non-obvious *why*, breaking changes, migration notes
+- Wrap at 72 chars
+- Bullets `-` not `*`
 
-1. **Analyze the `git diff`:** Carefully examine the provided `git diff` output. Pay attention to the files changed, lines added/removed, and the context of the surrounding changes.
+## What NEVER goes in
 
-2. **Identify the `<type>`:** Based on the nature of the changes, determine the most appropriate commit type from the following list (or other relevant types if the changes warrant it):
+- "This commit does X", "I", "we", "now", "currently" — the diff says what
+- "As requested by..."
+- "Generated with Claude Code" or any AI attribution
+- Emoji (unless project convention requires)
+- Restating the file name when scope already says it
 
-   - `feat`: A new feature.
-   - `fix`: A bug fix.
-   - `docs`: Documentation only changes.
-   - `style`: Changes that do not affect the meaning of the code (white-space, formatting, missing semicolons, etc.).
-   - `refactor`: A code change that neither fixes a bug nor adds a feature.
-   - `perf`: A code change that improves performance.
-   - `test`: Adding missing tests or correcting existing tests.
-   - `chore`: Changes to the build process or auxiliary tools and libraries such as documentation generation.
-   - `ci`: Changes to our CI configuration files and scripts.
-   - `build`: Changes that affect the build system or external dependencies.
-   - `revert`: Reverts a previous commit.
+## Auto-Clarity
 
-3. **Identify the `[optional scope]`:** If the changes are limited to a specific part of the codebase (e.g., a component, module, or specific feature), identify that scope and include it in parentheses after the type. Example: `feat(auth)`, `fix(ui)`. If the changes affect many areas or are global, the scope can be omitted.
+Always include body for: breaking changes, security fixes, data migrations, anything reverting a prior commit. Never compress these into subject-only — future debuggers need the context.
 
-4. **Create the `<description>`:** Write a concise, imperative description (using command verbs like "add", "fix", "change") of the changes. This description should be brief and explain _what_ was changed. Do not capitalize the first letter and do not end with a period. Note: The recommended under 50 characters applies specifically to the commit subject (the first line: `<type>[optional scope]: <description>`), while the `maxLength` parameter (default 72) constrains the entire commit message including the subject, body, and footers. For example, `feat(auth): add login validation` should stay under 50 characters, but the complete message (subject + body + footers) must not exceed the `maxLength` limit.
+## Examples
 
-5. **Create the `[optional body]`:** If the changes are complex enough to require further explanation of _why_ the changes were made and _how_ they differ from previous behavior, add a commit body after a blank line following the description. The body can consist of multiple paragraphs. Use imperative sentences.
+Diff: new endpoint for user profile with body explaining the why
+- ❌ "feat: add a new endpoint to get user profile information from the database"
+- ✅
+  ```
+  feat(api): add GET /users/:id/profile
 
-6. **Identify the `[optional footer(s)]`:**
+  Mobile client needs profile data without the full user payload
+  to reduce LTE bandwidth on cold-launch screens.
+  ```
 
-   - **`BREAKING CHANGE`:** If the changes introduce a backward-incompatible change (breaking change), add a footer starting with `BREAKING CHANGE: ` followed by a description of _what_ changed and _how_ to migrate. You can also signal a breaking change by adding a `!` after the type or scope (e.g., `feat!:`, `feat(api)!:`). If `!` is used, the `BREAKING CHANGE:` footer is still highly recommended for detailed explanation.
-   - **Issue References:** If the commit fixes or relates to a specific issue in an issue tracking system (e.g., GitHub Issues, Jira), add a footer referencing the issue, such as `Ref: #<issue-number>`. When an issue reference is provided in the requirements, ALWAYS include it in the footer of the commit message.
+Diff: breaking API change
+- ✅
+  ```
+  feat(api)!: rename /v1/orders to /v1/checkout
 
-7. **Final Format:** Assemble the identified elements into the correct Conventional Commits format. Ensure there is a blank line between the description and the body (if present), and between the body and the footer(s) (if present).
-
-**IMPORTANT REMINDER:** If an issue reference is provided in the requirements section, you MUST include it in the footer of the commit message. Do not omit it.
+  BREAKING CHANGE: clients on /v1/orders must migrate to /v1/checkout
+  before <YYYY-MM-DD>. Old route returns 410 after that date.
+  ```
 
 OUTPUT FORMAT:
 
